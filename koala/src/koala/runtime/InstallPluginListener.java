@@ -1,12 +1,13 @@
 package koala.runtime;
 
 /**
- * ²å¼ş°²×°µÄ»Øµô
+ * æ’ä»¶å®‰è£…çš„å›æ‰
  * 
  * @author zhaoxuyang
  * 
  */
 public interface InstallPluginListener {
+	
 	public abstract void onInstallStart();
 
 	public abstract void onInstallEnd();

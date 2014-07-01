@@ -5,7 +5,7 @@ import android.content.Intent;
 import android.support.v4.app.FragmentActivity;
 
 /**
- * 主要是为了启动service
+ * 鍚孭luginActivity
  * 
  * @author zhaoxuyang
  * 

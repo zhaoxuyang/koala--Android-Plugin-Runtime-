@@ -1,11 +1,14 @@
 package koala.runtime;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.content.pm.PackageParser;
 import android.os.Bundle;
 import android.os.Handler;
@@ -23,9 +26,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
- * �����࣬�������ز�����������
+ * 真正pluginmanager的实现
+ * 
  * @author zhaoxuyang
- *
+ * 
  */
 class PluginManagerImpl {
 	private Context mContext;
@@ -56,6 +60,10 @@ class PluginManagerImpl {
 		initEnvironment();
 	}
 
+	/**
+	 * 初始化环境，需要反射一些类，处理不同版本的差异等
+	 */
+	@SuppressWarnings("rawtypes")
 	private void initEnvironment() {
 		Object packageInfo = null;
 		Class packageClass = null;
@@ -163,6 +171,12 @@ class PluginManagerImpl {
 			}
 	}
 
+	/**
+	 * 安装插件并启动
+	 * 
+	 * @param info
+	 * @param listener
+	 */
 	public void installPlugin(final PluginInfo info,
 			final InstallPluginListener listener) {
 		if (!checkInstalled(info.name)) {
@@ -189,6 +203,9 @@ class PluginManagerImpl {
 		}
 	}
 
+	/**
+	 * 启动插件
+	 */
 	private void startCurrentPlugin() {
 		if (this.mCurrentPlugin == null) {
 			return;
@@ -200,13 +217,28 @@ class PluginManagerImpl {
 		this.mContext.startActivity(newIntent);
 	}
 
+	/**
+	 * 真正安装插件的代码
+	 * 
+	 * @param info
+	 */
 	private void realInstallPluin(PluginInfo info) {
 		try {
 			Plugin plugin = new Plugin();
+			plugin.mPluginInfo = info;
+			info.isInstalled = true;
 			this.mPlugins.put(info.name, plugin);
 
 			plugin.enterClass = info.enterClass;
-			int flags = 1103;
+
+			int flags = PackageManager.GET_ACTIVITIES
+					| PackageManager.GET_CONFIGURATIONS
+					| PackageManager.GET_INSTRUMENTATION
+					| PackageManager.GET_PERMISSIONS
+					| PackageManager.GET_PROVIDERS
+					| PackageManager.GET_RECEIVERS
+					| PackageManager.GET_SERVICES
+					| PackageManager.GET_SIGNATURES;
 
 			PackageParser parser = new PackageParser(info.apkPath);
 			DisplayMetrics metrics = new DisplayMetrics();
@@ -215,6 +247,8 @@ class PluginManagerImpl {
 			PackageParser.Package pack = parser.parsePackage(sourceFile,
 					info.apkPath, metrics, 0);
 
+			//因为PackagePaser的generatePackageInfo方法不同版本参数相差太多，所以还是用packagemanager的api
+			//但这样导致APK被解析了两次，上面获取Package是一次
 			PackageInfo packageInfo = this.mContext.getPackageManager()
 					.getPackageArchiveInfo(info.apkPath, flags);
 			packageInfo.applicationInfo.uid = Process.myUid();
@@ -222,7 +256,7 @@ class PluginManagerImpl {
 			packageInfo.applicationInfo.publicSourceDir = info.apkPath;
 			packageInfo.applicationInfo.dataDir = this.mContext.getDir(
 					info.name, 0).getAbsolutePath();
-			packageInfo.applicationInfo.flags &= 4;
+			packageInfo.applicationInfo.flags &= ApplicationInfo.FLAG_HAS_CODE;
 			Object realPackageInfo = null;
 			try {
 				realPackageInfo = this.getPackageInfo.invoke(
@@ -237,7 +271,7 @@ class PluginManagerImpl {
 			StringBuilder sb = new StringBuilder();
 			int size = info.nativeLibraryPaths.size();
 			for (int j = 0; j < size; j++) {
-				sb.append((String) info.nativeLibraryPaths.get(j));
+				sb.append(info.nativeLibraryPaths.get(j));
 				if (j < size - 1) {
 					sb.append(":");
 				}
@@ -319,11 +353,27 @@ class PluginManagerImpl {
 		return this.mCurrentPlugin;
 	}
 
-	public void uninstallPlugin(String name) {
+	public void uninstallPlugin(Activity activity, String name) {
 		if (this.mPlugins.containsKey(name)) {
-			Plugin plugin = (Plugin) this.mPlugins.remove(name);
+			Plugin plugin = (Plugin) this.mPlugins.get(name);
+			if (plugin.mPluginInfo.nativeLibraryPaths.size() > 0) {
+				AlertDialog.Builder builder = new AlertDialog.Builder(activity)
+						.setMessage("检测到该插件包含本地库，如卸载需要重启程序").setPositiveButton(
+								"确认", new DialogInterface.OnClickListener() {
+
+									@Override
+									public void onClick(DialogInterface arg0,
+											int arg1) {
+										Process.killProcess(Process.myPid());
+									}
+								});
+				builder.show();
+				return;
+			}
+			mPlugins.remove(name);
 			this.mMajorHandler.removePlugin(plugin);
 			plugin.mRealPackageInfo = null;
+			plugin.mPluginInfo.isInstalled = false;
 			System.gc();
 		}
 	}

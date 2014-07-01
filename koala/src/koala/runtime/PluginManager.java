@@ -1,11 +1,12 @@
 package koala.runtime;
 
+import android.app.Activity;
 import android.content.Context;
 
 import java.io.File;
 
 /**
- * pluginmanager��wrapper
+ * pluginmanager的wrapper，隐藏实现
  * @author zhaoxuyang
  *
  */
@@ -44,8 +45,8 @@ public class PluginManager {
 		return mImpl.getCurrentPlugin();
 	}
 
-	public void uninstallPlugin(String name) {
-		mImpl.uninstallPlugin(name);
+	public void uninstallPlugin(Activity activity,String name) {
+		mImpl.uninstallPlugin(activity,name);
 	}
 
 	public boolean checkInstalled(String name) {

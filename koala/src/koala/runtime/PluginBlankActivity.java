@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 /**
- * ����activity
+ * activity的代理
  * 
  * @author zhaoxuyang
  * 
@@ -194,6 +194,11 @@ public class PluginBlankActivity extends Activity {
 		}
 	}
 
+	/* 
+	 * 插件startactivity会调到这里，这里处理了隐式和显式启动activity
+	 * (non-Javadoc)
+	 * @see android.app.Activity#startActivityFromChild(android.app.Activity, android.content.Intent, int)
+	 */
 	public void startActivityFromChild(Activity child, Intent intent,
 			int requestCode) {
 		ComponentName cn = intent.getComponent();
@@ -236,16 +241,6 @@ public class PluginBlankActivity extends Activity {
 
 			}
 		}
-	}
-
-	public ComponentName startService(Intent intent) {
-		ComponentName cn = intent.getComponent();
-		if (cn != null) {
-			intent.setComponent(new ComponentName(getPackageName(), cn
-					.getClassName()));
-		}
-		intent.setPackage(getPackageName());
-		return super.startService(intent);
 	}
 
 	public static class LocalBinder extends Binder {

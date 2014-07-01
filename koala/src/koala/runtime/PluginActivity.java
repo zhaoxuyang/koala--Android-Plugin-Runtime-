@@ -5,9 +5,9 @@ import android.content.ComponentName;
 import android.content.Intent;
 
 /**
- * 插件activity，主要是为了启动service
+ * 鎻掍欢涓殑activity濡傛灉闇�瑕佸惎鍔╯ervice锛屽垯搴旂户鎵胯activity锛屽惁鍒檚ervice鍚姩澶辫触
  * 
- * @author zhaoxuyang
+ * @author zhao脧xuyang
  * 
  */
 public class PluginActivity extends Activity {

@@ -4,12 +4,13 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageParser;
 
 /**
- * 加载后的插件
+ * 鍔犺浇鍚庣殑鎻掍欢
  * 
  * @author zhaoxuyang
  * 
  */
 class Plugin {
+	public PluginInfo mPluginInfo;
 	public PackageInfo mPackageInfo;
 	public Object mRealPackageInfo;
 	public String enterClass;

@@ -5,7 +5,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 
 /**
- * ÕæÕıµÄhandler
+ * å­loaderçš„handler
  * 
  * @author zhaoxuyang
  * 

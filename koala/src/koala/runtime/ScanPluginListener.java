@@ -3,7 +3,7 @@ package koala.runtime;
 import java.util.ArrayList;
 
 /**
- * É¨Ãè²å¼şµÄ¼àÌı
+ * æ‰«ææ’ä»¶çš„å›æ‰
  * @author zhaoxuyang
  *
  */

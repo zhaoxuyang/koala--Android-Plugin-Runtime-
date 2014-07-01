@@ -4,7 +4,7 @@ import android.text.TextUtils;
 import java.util.ArrayList;
 
 /**
- * ²å¼şĞÅÏ¢
+ * æ’ä»¶ä¿¡æ¯
  * 
  * @author zhaoxuyang
  * 
@@ -15,6 +15,7 @@ public class PluginInfo {
 	public String enterClass;
 	public String apkPath;
 	public ArrayList<String> nativeLibraryPaths = new ArrayList<String>();
+	public boolean isInstalled;
 
 	public boolean checkApk() {
 		if ((!TextUtils.isEmpty(this.name))

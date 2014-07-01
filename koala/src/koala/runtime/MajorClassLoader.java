@@ -1,16 +1,18 @@
 package koala.runtime;
 
 import dalvik.system.DexClassLoader;
+
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.Enumeration;
 
 /**
- * ×Ü´úÀí£¬Ö÷loaderÕÒ²»µ½¾Í´Ó²å¼şµÄloaderÕÒ
+ * ä¸»classloaderï¼Œå¦‚æœä¸€ä¸ªç±»åœ¨ä¸»loaderæ²¡æœ‰æ‰¾åˆ°ï¼Œåˆ™ä¼šåœ¨å­loaderä¸­æŸ¥çœ‹
  * 
  * @author zhaoxuyang
  * 
  */
+@SuppressWarnings("rawtypes")
 class MajorClassLoader extends DexClassLoader {
 	public static Method getLdLibraryPath;
 	public static Method findClass;
@@ -162,6 +164,7 @@ class MajorClassLoader extends DexClassLoader {
 		return pack;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	protected Enumeration<URL> findResources(String resName) {
 		Enumeration enu = null;
