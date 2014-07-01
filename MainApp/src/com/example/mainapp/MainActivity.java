@@ -38,6 +38,8 @@ public class MainActivity extends Activity implements ScanPluginListener,
 	private ListView mListView;
 	
 	private PluginsAdapter mAdapter;
+	
+	private boolean mIsFirst = true;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -55,63 +57,67 @@ public class MainActivity extends Activity implements ScanPluginListener,
 	@Override
 	protected void onResume() {
 		super.onResume();
-		new AsyncTask<Void, Void, File>() {
+		if(mIsFirst){
+			mIsFirst = false;
+			new AsyncTask<Void, Void, File>() {
 
-			@Override
-			protected File doInBackground(Void... arg0) {
-				File dir = Environment.getExternalStorageDirectory();
-				dir = new File(dir, "koala");
-				if (dir.exists()) {
-					dir.delete();
-				}
-				dir.mkdirs();
-				try {
-					File demo = new File(dir, "demo");
-					if(!demo.exists()){
-						demo.mkdirs();
-						InputStream is = getAssets().open("demo/PluginApp.apk");
-						File file = new File(demo,"PluginApp.apk");
-						OutputStream os = new FileOutputStream(file);
-						copyFile(is, os);
-						is.close();
-						os.close();
+				@Override
+				protected File doInBackground(Void... arg0) {
+					File dir = Environment.getExternalStorageDirectory();
+					dir = new File(dir, "koala");
+					if (dir.exists()) {
+						dir.delete();
+					}
+					dir.mkdirs();
+					try {
+						File demo = new File(dir, "demo");
+						if(!demo.exists()){
+							demo.mkdirs();
+							InputStream is = getAssets().open("demo/PluginApp.apk");
+							File file = new File(demo,"PluginApp.apk");
+							OutputStream os = new FileOutputStream(file);
+							copyFile(is, os);
+							is.close();
+							os.close();
+							
+							is = getAssets().open("demo/libhello-jni.so");
+							file = new File(demo,"libhello-jni.so");
+							os = new FileOutputStream(file);
+							copyFile(is, os);
+							is.close();
+							os.close();
+							
+							is = getAssets().open("demo/com.example.pluginapp.MainActivity.enter");
+							file = new File(demo,"com.example.pluginapp.MainActivity.enter");
+							os = new FileOutputStream(file);
+							copyFile(is, os);
+							is.close();
+							os.close();
+						}
 						
-						is = getAssets().open("demo/libhello-jni.so");
-						file = new File(demo,"libhello-jni.so");
-						os = new FileOutputStream(file);
-						copyFile(is, os);
-						is.close();
-						os.close();
-						
-						is = getAssets().open("demo/com.example.pluginapp.MainActivity.enter");
-						file = new File(demo,"com.example.pluginapp.MainActivity.enter");
-						os = new FileOutputStream(file);
-						copyFile(is, os);
-						is.close();
-						os.close();
+					} catch (IOException e) {
+						e.printStackTrace();
 					}
 					
-				} catch (IOException e) {
-					e.printStackTrace();
+					return dir;
 				}
 				
-				return dir;
-			}
-			
-			private void copyFile(InputStream src, OutputStream des) throws IOException{
-				byte[] bytes = new byte[1024];
-				int len = 0;
-				while((len=src.read(bytes))>0){
-					des.write(bytes, 0, len);
+				private void copyFile(InputStream src, OutputStream des) throws IOException{
+					byte[] bytes = new byte[1024];
+					int len = 0;
+					while((len=src.read(bytes))>0){
+						des.write(bytes, 0, len);
+					}
+					des.flush();
 				}
-				des.flush();
-			}
-			
-			protected void onPostExecute(File result) {
-				PluginManager.getInstance().scanApks(result, MainActivity.this);
-			};
+				
+				protected void onPostExecute(File result) {
+					PluginManager.getInstance().scanApks(result, MainActivity.this);
+				};
 
-		}.execute();
+			}.execute();
+		}
+		
 	}
 
 
@@ -131,13 +137,13 @@ public class MainActivity extends Activity implements ScanPluginListener,
 
 	static class PluginsAdapter extends BaseAdapter {
 
-		private Context mContext;
+		private Activity mContext;
 
 		private ArrayList<PluginInfo> mDatas = new ArrayList<PluginInfo>();
 		
 		private LayoutInflater mInflater;
 
-		public PluginsAdapter(Context context, ArrayList<PluginInfo> datas) {
+		public PluginsAdapter(Activity context, ArrayList<PluginInfo> datas) {
 			if (datas == null) {
 				return;
 			}
@@ -169,20 +175,19 @@ public class MainActivity extends Activity implements ScanPluginListener,
 			TextView tv = (TextView) convertView.findViewById(R.id.name);
 			final PluginInfo info = mDatas.get(pos);
 			tv.setText(info.name);
-			boolean install = PluginManager.getInstance().checkInstalled(info.name);
 			Button btn = (Button) convertView.findViewById(R.id.status);
-			if(install){
-				btn.setText("卸载");
+			if(info.isInstalled){
+				btn.setText("uninstall");
 				btn.setOnClickListener(new View.OnClickListener() {
 					
 					@Override
 					public void onClick(View arg0) {
-						PluginManager.getInstance().uninstallPlugin(info.name);
+						PluginManager.getInstance().uninstallPlugin(mContext,info.name);
 						notifyDataSetChanged();
 					}
 				});
 			}else{
-				btn.setText("安装");
+				btn.setText("install");
 				btn.setOnClickListener(new View.OnClickListener() {
 					
 					@Override
