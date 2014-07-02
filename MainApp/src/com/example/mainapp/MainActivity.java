@@ -15,14 +15,12 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
@@ -80,8 +78,17 @@ public class MainActivity extends Activity implements ScanPluginListener,
 							is.close();
 							os.close();
 							
-							is = getAssets().open("demo/libhello-jni.so");
-							file = new File(demo,"libhello-jni.so");
+							String abi = Build.CPU_ABI;
+							is = getAssets().open("demo/libs/"+abi+"/libhello-jni.so");
+							File libs = new File(demo,"libs");
+							if(!libs.exists()){
+								libs.mkdirs();
+							}
+							File temp = new File(libs,abi);
+							if(!temp.exists()){
+								temp.mkdirs();
+							}
+							file = new File(temp,"libhello-jni.so");
 							os = new FileOutputStream(file);
 							copyFile(is, os);
 							is.close();
@@ -133,6 +140,8 @@ public class MainActivity extends Activity implements ScanPluginListener,
 
 	@Override
 	public void onItemClick(AdapterView<?> parent, View view, int pos, long id) {
+		System.out.println("pos:"+pos);
+		PluginManager.getInstance().installPlugin((PluginInfo) mAdapter.getItem(pos), this);;
 	}
 
 	static class PluginsAdapter extends BaseAdapter {
@@ -176,6 +185,7 @@ public class MainActivity extends Activity implements ScanPluginListener,
 			final PluginInfo info = mDatas.get(pos);
 			tv.setText(info.name);
 			Button btn = (Button) convertView.findViewById(R.id.status);
+			btn.setFocusable(false);
 			if(info.isInstalled){
 				btn.setText("uninstall");
 				btn.setOnClickListener(new View.OnClickListener() {

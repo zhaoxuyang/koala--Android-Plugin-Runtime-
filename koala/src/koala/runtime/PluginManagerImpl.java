@@ -10,6 +10,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageParser;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -179,28 +180,44 @@ class PluginManagerImpl {
 	 */
 	public void installPlugin(final PluginInfo info,
 			final InstallPluginListener listener) {
+
+		beginInstall(info, listener);
+		
 		if (!checkInstalled(info.name)) {
 			new Thread() {
 				public void run() {
-					PluginManagerImpl.this.mHandler.post(new Runnable() {
-						public void run() {
-							listener.onInstallStart();
-						}
-					});
 					PluginManagerImpl.this.realInstallPluin(info);
-					PluginManagerImpl.this.mHandler.post(new Runnable() {
-						public void run() {
-							PluginManagerImpl.this.setCurrentPlugin(info.name);
-							PluginManagerImpl.this.startCurrentPlugin();
-							listener.onInstallEnd();
-						}
-					});
+					afterInstall(info, listener);
 				}
 			}.start();
 		} else {
-			setCurrentPlugin(info.name);
-			startCurrentPlugin();
+			afterInstall(info, listener);
 		}
+	}
+	
+	private void beginInstall(final PluginInfo info,final InstallPluginListener listener){
+		PluginManagerImpl.this.mHandler.post(new Runnable() {
+			public void run() {
+				if (listener != null) {
+					listener.onInstallStart();
+				}
+			}
+		});
+	}
+	
+	private void afterInstall(final PluginInfo info,final InstallPluginListener listener){
+		PluginManagerImpl.this.mHandler.post(new Runnable() {
+			public void run() {
+				Plugin plugin = mPlugins.get(info.name);
+				plugin.mPluginInfo = info;
+				info.isInstalled = true;
+				PluginManagerImpl.this.setCurrentPlugin(info.name);
+				PluginManagerImpl.this.startCurrentPlugin();
+				if(listener!=null){
+					listener.onInstallEnd();
+				}
+			}
+		});
 	}
 
 	/**
@@ -225,8 +242,6 @@ class PluginManagerImpl {
 	private void realInstallPluin(PluginInfo info) {
 		try {
 			Plugin plugin = new Plugin();
-			plugin.mPluginInfo = info;
-			info.isInstalled = true;
 			this.mPlugins.put(info.name, plugin);
 
 			plugin.enterClass = info.enterClass;
@@ -247,8 +262,8 @@ class PluginManagerImpl {
 			PackageParser.Package pack = parser.parsePackage(sourceFile,
 					info.apkPath, metrics, 0);
 
-			//因为PackagePaser的generatePackageInfo方法不同版本参数相差太多，所以还是用packagemanager的api
-			//但这样导致APK被解析了两次，上面获取Package是一次
+			// 因为PackagePaser的generatePackageInfo方法不同版本参数相差太多，所以还是用packagemanager的api
+			// 但这样导致APK被解析了两次，上面获取Package是一次
 			PackageInfo packageInfo = this.mContext.getPackageManager()
 					.getPackageArchiveInfo(info.apkPath, flags);
 			packageInfo.applicationInfo.uid = Process.myUid();
@@ -325,13 +340,18 @@ class PluginManagerImpl {
 						if (str.toLowerCase().endsWith(".apk")) {
 							pluginInfo.apkName = str;
 							pluginInfo.apkPath = file.getAbsolutePath();
-						} else if (str.toLowerCase().endsWith(".so")) {
-							pluginInfo.nativeLibraryPaths.add(file.getParent());
+						} else if (str.equals("libs")) {
+							File temp = new File(file, Build.CPU_ABI);
+							if (temp.exists()) {
+								pluginInfo.nativeLibraryPaths.add(temp
+										.getAbsolutePath());
+							}
 						} else if (str.toLowerCase().endsWith(".enter")) {
 							pluginInfo.enterClass = str.substring(0,
 									str.length() - 6);
 						}
 					}
+					pluginInfo.isInstalled = checkInstalled(pluginInfo.name);
 					if (pluginInfo.checkApk()) {
 						plugins.add(pluginInfo);
 					}
