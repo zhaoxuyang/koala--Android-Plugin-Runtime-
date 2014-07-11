@@ -3,7 +3,7 @@ koala
 
 Android插件平台
 
-该平台目前支持Activity，Service，BroadcastReceiver组件。
+该平台目前支持Activity，Service，BroadcastReceiver组件。<br>
 一共有3个项目：<br>
 1、koala：是插件的sdk，包含的插件的安装，启动，卸载等功能，该项目是不可运行的Android项目，libs目录下的frameworks-classes-full-debug.jar和libcore-classes-full-debug是基于Android4.4.2源码编译成userdebug版SDK<br>
 2、MainApp：使用插件sdk的项目，调用插件的API来管理插件，asset目录下有测试的插件demo，项目运行时会将其拷贝到/sdcard/koala目录下。<br>
