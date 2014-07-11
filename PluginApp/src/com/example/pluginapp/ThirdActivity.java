@@ -1,6 +1,6 @@
 package com.example.pluginapp;
 
-import koala.runtime.PluginActivity;
+import android.app.PluginActivity;
 import android.os.Bundle;
 
 public class ThirdActivity extends PluginActivity {

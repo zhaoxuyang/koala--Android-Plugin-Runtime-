@@ -7,18 +7,19 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 
-import koala.runtime.InstallPluginListener;
-import koala.runtime.PluginInfo;
-import koala.runtime.PluginManager;
-import koala.runtime.ScanPluginListener;
 import android.app.Activity;
+import android.app.InstallPluginListener;
+import android.app.PluginInfo;
+import android.app.PluginManager;
 import android.app.ProgressDialog;
+import android.app.ScanPluginListener;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.LayoutInflater;
+import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -47,7 +48,7 @@ public class MainActivity extends Activity implements ScanPluginListener,
 		mListView.setOnItemClickListener(this);
 		mDialog = new ProgressDialog(this);
 		mDialog.setMessage("scanning");
-		PluginManager.getInstance().init(this.getBaseContext(),
+		PluginManager.getInstance().init(this,
 				getDir("dexout", Context.MODE_PRIVATE).getAbsolutePath());
 
 	}
@@ -64,7 +65,17 @@ public class MainActivity extends Activity implements ScanPluginListener,
 					File dir = Environment.getExternalStorageDirectory();
 					dir = new File(dir, "koala");
 					if (dir.exists()) {
-						dir.delete();
+						try {
+							Process process = Runtime.getRuntime().exec("rm -rf "+dir.getAbsolutePath());
+							if(process.waitFor()!=0){
+								return null;
+							}
+						} catch (IOException e) {
+							e.printStackTrace();
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 					}
 					dir.mkdirs();
 					try {
@@ -140,8 +151,7 @@ public class MainActivity extends Activity implements ScanPluginListener,
 
 	@Override
 	public void onItemClick(AdapterView<?> parent, View view, int pos, long id) {
-		System.out.println("pos:"+pos);
-		PluginManager.getInstance().installPlugin((PluginInfo) mAdapter.getItem(pos), this);;
+		PluginManager.getInstance().startPlugin((PluginInfo) mAdapter.getItem(pos));
 	}
 
 	static class PluginsAdapter extends BaseAdapter {
@@ -212,15 +222,26 @@ public class MainActivity extends Activity implements ScanPluginListener,
 	}
 
 	@Override
-	public void onInstallEnd() {
-		mDialog.dismiss();
+	public void onInstallEnd(PluginInfo arg0) {
 		mAdapter.notifyDataSetChanged();
+		PluginManager.getInstance().startPlugin(arg0);
 	}
 
 	@Override
-	public void onInstallStart() {
-		mDialog.setMessage("installing");
-		mDialog.show();
+	public void onInstallStart(PluginInfo arg0) {
+		
+	}
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		return super.onCreateOptionsMenu(menu);
+	}
+	
+	@Override
+	public boolean onPrepareOptionsMenu(Menu menu) {
+		menu.add("menu1");
+		menu.add("menu2");
+		menu.add("menu3");
+		return super.onPrepareOptionsMenu(menu);
 	}
 
 }

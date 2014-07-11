@@ -27,11 +27,16 @@ public final class R {
     }
     public static final class id {
         public static final int container=0x7f060000;
-        public static final int res=0x7f060005;
+        public static final int registreceiver=0x7f060005;
+        public static final int res=0x7f06000a;
         public static final int second_activity=0x7f060001;
+        public static final int sendbroadcat=0x7f060007;
+        public static final int showdialog=0x7f060008;
         public static final int start_service=0x7f060003;
-        public static final int test_native=0x7f060004;
+        public static final int stopservice=0x7f060004;
+        public static final int test_native=0x7f060009;
         public static final int third_activity=0x7f060002;
+        public static final int unregistreceiver=0x7f060006;
     }
     public static final class layout {
         public static final int activity_main=0x7f030000;
