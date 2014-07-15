@@ -12,10 +12,15 @@ import java.util.ArrayList;
  * 
  */
 public class PluginInfo {
+	
 	/**
-	 * 插件名字，唯一标识
+	 * 应用名
 	 */
-	public String name;
+	public String applicationName;
+	/**
+	 * 插件包名，唯一标识
+	 */
+	public String packageName;
 	/**
 	 * APK文件的名称
 	 */
@@ -52,8 +57,7 @@ public class PluginInfo {
 	 * @return 是否完整
 	 */
 	public boolean checkApk() {
-		if ((!TextUtils.isEmpty(this.name))
-				&& (!TextUtils.isEmpty(this.apkName))
+		if ((!TextUtils.isEmpty(this.apkName))
 				&& (!TextUtils.isEmpty(this.enterClass))) {
 			return true;
 		}

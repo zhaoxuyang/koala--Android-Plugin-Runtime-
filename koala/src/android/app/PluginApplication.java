@@ -56,7 +56,7 @@ public class PluginApplication extends Application {
 
 	/**
 	 * 设置对应的插件名称
-	 * @param pluginName
+	 * @param pluginName 插件包名
 	 */
 	public void setPluginName(String pluginName) {
 		this.pluginName = pluginName;

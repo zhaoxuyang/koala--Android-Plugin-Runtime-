@@ -112,8 +112,10 @@ public class MainActivity extends Activity implements ScanPluginListener,
 							is.close();
 							os.close();
 						}
-						
+						Thread.sleep(1000);
 					} catch (IOException e) {
+						e.printStackTrace();
+					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
 					
@@ -193,7 +195,7 @@ public class MainActivity extends Activity implements ScanPluginListener,
 			}
 			TextView tv = (TextView) convertView.findViewById(R.id.name);
 			final PluginInfo info = mDatas.get(pos);
-			tv.setText(info.name);
+			tv.setText(info.applicationName);
 			Button btn = (Button) convertView.findViewById(R.id.status);
 			btn.setFocusable(false);
 			if(info.isInstalled){
@@ -202,7 +204,7 @@ public class MainActivity extends Activity implements ScanPluginListener,
 					
 					@Override
 					public void onClick(View arg0) {
-						PluginManager.getInstance().uninstallPlugin(mContext,info.name);
+						PluginManager.getInstance().uninstallPlugin(mContext,info.applicationName);
 						notifyDataSetChanged();
 					}
 				});

@@ -12,7 +12,6 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageParser;
 import android.content.pm.PackageParser.ActivityIntentInfo;
-import android.content.pm.PackageParser.ServiceIntentInfo;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -28,9 +27,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * 真正pluginmanager的实现
@@ -114,6 +113,16 @@ class PluginManagerImpl {
 	 * 代理broadcastreceiver
 	 */
 	private PluginBlankBroadcastReceiver mReceiver;
+
+	/**
+	 * 启动activity的时候用它查找
+	 */
+	private ActivityIntentResolver mActivitys = new ActivityIntentResolver();
+
+	/**
+	 * 启动service的时候用它查找
+	 */
+	private ServiceIntentResolver mServices = new ServiceIntentResolver();
 
 	/**
 	 * 获取单例
@@ -238,7 +247,7 @@ class PluginManagerImpl {
 	void installPlugin(final PluginInfo info,
 			final InstallPluginListener listener) {
 
-		if (!mPlugins.containsKey(info.name)) {
+		if (!mPlugins.containsKey(info.packageName)) {
 			beginInstall(info, listener);
 			realInstallPluin(info);
 			afterInstall(info, listener);
@@ -285,14 +294,14 @@ class PluginManagerImpl {
 		if (info == null) {
 			return;
 		}
-		if (!mPlugins.containsKey(info.name)) {
+		if (!mPlugins.containsKey(info.packageName)) {
 			Log.e(TAG, "no plugin or not install");
 			return;
 		}
 		String className = info.enterClass;
 		Intent newIntent = new Intent(mContext, PluginBlankActivity.class);
 		newIntent.putExtra(PluginBlankActivity.ACTIVITY_NAME, className);
-		newIntent.putExtra(PluginBlankActivity.PLUGIN_NAME, info.name);
+		newIntent.putExtra(PluginBlankActivity.PLUGIN_NAME, info.packageName);
 		newIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 		mContext.startActivity(newIntent);
 	}
@@ -305,42 +314,35 @@ class PluginManagerImpl {
 	 */
 	void startPluginActivity(Intent intent) {
 
-		Collection<PluginInfo> infos = mPluginInfos.values();
-		Iterator<PluginInfo> iter = infos.iterator();
 		ComponentName cn = intent.getComponent();
 		String className = null;
 		PluginInfo info = null;
-		while (iter.hasNext()) {
-			PluginInfo temp = iter.next();
-			ArrayList<android.content.pm.PackageParser.Activity> activitys = temp.mPackageObj.activities;
-			Iterator<android.content.pm.PackageParser.Activity> iter1 = activitys
-					.iterator();
-			while (iter1.hasNext()) {
-				PackageParser.Activity activity = (PackageParser.Activity) iter1
-						.next();
-				if (cn != null) {
-					if (cn.getClassName().equals(activity.className)
-							&& cn.getPackageName().equals(
-									temp.mPackageInfo.packageName)) {
-						className = activity.className;
-						info = temp;
-						break;
-					}
-				} else {
-					ArrayList<ActivityIntentInfo> intentinfos = activity.intents;
-					Iterator<ActivityIntentInfo> i = intentinfos.iterator();
-					while (i.hasNext()) {
-						PackageParser.ActivityIntentInfo intentinfo = (PackageParser.ActivityIntentInfo) i
-								.next();
-						int res = intentinfo.match(intent.getAction(),
-								intent.getType(), intent.getScheme(),
-								intent.getData(), intent.getCategories(), "");
-						if (res > 0) {
-							className = activity.className;
-							info = temp;
-							break;
-						}
-					}
+
+		if (cn != null) {
+			PackageParser.Activity activity = mActivitys.mActivities.get(cn);
+			className = activity.className;
+			info = mPluginInfos.get(activity.getComponentName()
+					.getPackageName());
+		} else {
+
+			String packageName = intent.getPackage();
+			if (packageName != null) {
+				PluginInfo temp = mPluginInfos.get(packageName);
+				List<PackageParser.Activity> res = mActivitys
+						.queryIntentForPackage(intent, null, 0,
+								info.mPackageObj.activities);
+				if (res != null && res.size() > 0) {
+					info = temp;
+					className = res.get(0).className;
+				}
+			} else {
+				List<PackageParser.Activity> res = mActivitys.queryIntent(
+						intent, null, 0);
+				if (res != null && res.size() > 0) {
+					packageName = res.get(0).getComponentName()
+							.getPackageName();
+					info = mPluginInfos.get(packageName);
+					className = res.get(0).className;
 				}
 			}
 		}
@@ -350,7 +352,8 @@ class PluginManagerImpl {
 			Intent newIntent = new Intent(mContext, PluginBlankActivity.class);
 			newIntent.putExtras(intent);
 			newIntent.putExtra(PluginBlankActivity.ACTIVITY_NAME, className);
-			newIntent.putExtra(PluginBlankActivity.PLUGIN_NAME, info.name);
+			newIntent.putExtra(PluginBlankActivity.PLUGIN_NAME,
+					info.packageName);
 			newIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 			mContext.startActivity(newIntent);
 		} else {
@@ -406,56 +409,47 @@ class PluginManagerImpl {
 	 * @return ComponentName
 	 */
 	private ComponentName deliverPluginService(Intent intent, int type) {
-		Collection<PluginInfo> infos = mPluginInfos.values();
-		Iterator<PluginInfo> iter = infos.iterator();
 		ComponentName cn = intent.getComponent();
 		String className = null;
 		PluginInfo info = null;
 		ComponentName rescn = null;
-		while (iter.hasNext()) {
-			PluginInfo temp = iter.next();
-			ArrayList<android.content.pm.PackageParser.Service> services = temp.mPackageObj.services;
-			Iterator<android.content.pm.PackageParser.Service> iter1 = services
-					.iterator();
-			while (iter1.hasNext()) {
-				PackageParser.Service service = (PackageParser.Service) iter1
-						.next();
-				if (cn != null) {
-					if (cn.getClassName().equals(service.className)
-							&& cn.getPackageName().equals(
-									temp.mPackageInfo.packageName)) {
-						className = service.className;
-						info = temp;
-						rescn = cn;
-						break;
-					}
-				} else {
-					ArrayList<ServiceIntentInfo> intentinfos = service.intents;
-					Iterator<ServiceIntentInfo> i = intentinfos.iterator();
-					while (i.hasNext()) {
-						PackageParser.ServiceIntentInfo intentinfo = (PackageParser.ServiceIntentInfo) i
-								.next();
-						int res = intentinfo.match(intent.getAction(),
-								intent.getType(), intent.getScheme(),
-								intent.getData(), intent.getCategories(), "");
-						if (res > 0) {
-							className = service.className;
-							info = temp;
-							rescn = new ComponentName(
-									info.mPackageInfo.packageName, className);
-							break;
-						}
-					}
+		if (cn != null) {
+			PackageParser.Service service = mServices.mServices.get(cn);
+			className = service.className;
+			rescn = service.getComponentName();
+			info = mPluginInfos.get(rescn.getPackageName());
+		} else {
+
+			String packageName = intent.getPackage();
+			if (packageName != null) {
+				PluginInfo temp = mPluginInfos.get(packageName);
+				List<PackageParser.Service> res = mServices
+						.queryIntentForPackage(intent, null, 0,
+								info.mPackageObj.services);
+				if (res != null && res.size() > 0) {
+					info = temp;
+					PackageParser.Service s = res.get(0);
+					rescn = s.getComponentName();
+					className = s.className;
+				}
+			} else {
+				List<PackageParser.Service> res = mServices.queryIntent(intent,
+						null, 0);
+				if (res != null && res.size() > 0) {
+					rescn = res.get(0).getComponentName();
+					packageName = rescn.getPackageName();
+					info = mPluginInfos.get(packageName);
+					className = res.get(0).className;
 				}
 			}
 		}
-
 		if (info != null) {
 			installPlugin(info, null);
 			Intent newIntent = new Intent(mContext, PluginBlankService.class);
 			newIntent.putExtras(intent);
 			newIntent.putExtra(PluginBlankService.SERVICE_NAME, className);
-			newIntent.putExtra(PluginBlankService.PLUGIN_NAME, info.name);
+			newIntent
+					.putExtra(PluginBlankService.PLUGIN_NAME, info.packageName);
 			newIntent.putExtra(PluginBlankService.TYPE, type);
 			mContext.startService(newIntent);
 			return rescn;
@@ -572,8 +566,8 @@ class PluginManagerImpl {
 			packageInfo.applicationInfo.uid = Process.myUid();
 			packageInfo.applicationInfo.sourceDir = info.apkPath;
 			packageInfo.applicationInfo.publicSourceDir = info.apkPath;
-			packageInfo.applicationInfo.dataDir = mContext.getDir(info.name, 0)
-					.getAbsolutePath();
+			packageInfo.applicationInfo.dataDir = mContext.getDir(
+					info.packageName, 0).getAbsolutePath();
 			packageInfo.applicationInfo.flags &= ApplicationInfo.FLAG_HAS_CODE;
 
 			LoadedApk realPackageInfo = null;
@@ -608,7 +602,7 @@ class PluginManagerImpl {
 			plugin.mApplication = realPackageInfo.makeApplication(false, null);
 			if (plugin.mApplication instanceof PluginApplication) {
 				PluginApplication pa = (PluginApplication) plugin.mApplication;
-				pa.setPluginName(plugin.mPluginInfo.name);
+				pa.setPluginName(plugin.mPluginInfo.packageName);
 			}
 			plugin.mApplication.onCreate();
 
@@ -635,7 +629,7 @@ class PluginManagerImpl {
 			// 恭喜，插件安装了
 			plugin.mPluginInfo.isInstalled = true;
 
-			mPlugins.put(info.name, plugin);
+			mPlugins.put(info.packageName, plugin);
 
 		} catch (IllegalAccessException e) {
 			e.printStackTrace();
@@ -675,7 +669,7 @@ class PluginManagerImpl {
 						continue;
 					}
 					PluginInfo pluginInfo = new PluginInfo();
-					pluginInfo.name = str;
+					pluginInfo.applicationName = str;
 					File[] files2 = file.listFiles();
 					for (int j = 0; j < files2.length; j++) {
 						file = files2[j];
@@ -697,7 +691,7 @@ class PluginManagerImpl {
 
 					if (pluginInfo.checkApk()) {
 						getPackageInfo(pluginInfo);
-						mPluginInfos.put(pluginInfo.name, pluginInfo);
+						mPluginInfos.put(pluginInfo.packageName, pluginInfo);
 					}
 				}
 				mHandler.post(new Runnable() {
@@ -749,8 +743,21 @@ class PluginManagerImpl {
 		PackageInfo packageInfo = mContext.getPackageManager()
 				.getPackageArchiveInfo(info.apkPath, flags);
 
+		info.packageName = packageInfo.packageName;
 		info.mPackageObj = pack;
 		info.mPackageInfo = packageInfo;
+
+		ArrayList<PackageParser.Activity> activitys = pack.activities;
+		int size = activitys.size();
+		for (int i = 0; i < size; i++) {
+			mActivitys.addActivity(activitys.get(i));
+		}
+
+		ArrayList<PackageParser.Service> services = pack.services;
+		size = services.size();
+		for (int i = 0; i < size; i++) {
+			mServices.addService(services.get(i));
+		}
 	}
 
 	/**
@@ -811,4 +818,5 @@ class PluginManagerImpl {
 	void destory() {
 		mContext.unregisterReceiver(mReceiver);
 	}
+
 }
