@@ -8,6 +8,9 @@
 *.war
 *.ear
 *.log
+*.dex
+*.apk
+*.ap_
 
 bin/
 gen/
