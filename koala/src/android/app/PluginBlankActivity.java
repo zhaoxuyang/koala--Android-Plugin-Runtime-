@@ -123,9 +123,17 @@ public class PluginBlankActivity extends Activity {
 						activityName));
 				intent.putExtras(getIntent());
 				// 参照activitygroup的代码，将activity启动起来
-				activity = manager.mActivityThread.startActivityNow(this,
-						activityName, intent, info, new LocalBinder(),
-						savedInstanceState, null);
+				try {
+					activity = (Activity) manager.startActivityNow.invoke(manager.mActivityThread,this,
+							activityName, intent, info, new LocalBinder(),
+							savedInstanceState, null);
+				} catch (IllegalAccessException e) {
+					e.printStackTrace();
+				} catch (IllegalArgumentException e) {
+					e.printStackTrace();
+				} catch (InvocationTargetException e) {
+					e.printStackTrace();
+				}
 				break;
 			}
 		}

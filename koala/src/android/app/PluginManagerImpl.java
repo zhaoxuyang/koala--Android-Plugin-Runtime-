@@ -7,12 +7,14 @@ import android.content.ContextWrapper;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageParser;
 import android.content.pm.PackageParser.ActivityIntentInfo;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -70,12 +72,16 @@ class PluginManagerImpl {
 	public ActivityThread mActivityThread;
 
 	/**
-	 * 创建LoadedApk的方法，将插件注册到ActivityThread中
+	 * 创建Object的方法，将插件注册到ActivityThread中
 	 */
 	public Method getPackageInfo;
 
+	public Method makeApplication;
+
+	public Method startActivityNow;
+
 	/**
-	 * 用于给LoadedApk设置classloader
+	 * 用于给Object设置classloader
 	 */
 	public Field mClassLoader;
 
@@ -158,13 +164,13 @@ class PluginManagerImpl {
 	 * 
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	private void initEnvironment() {
+	void initEnvironment() {
 
-		// 得到主程序的LoadedAPK
-		LoadedApk packageInfo = null;
+		// 得到主程序的Object
+		Object packageInfo = null;
 		Class packageClass = null;
 		try {
-			packageClass = LoadedApk.class;
+			packageClass = Class.forName("android.app.LoadedApk");
 
 			mClassLoader = packageClass.getDeclaredField("mClassLoader");
 			mClassLoader.setAccessible(true);
@@ -174,7 +180,7 @@ class PluginManagerImpl {
 			Field f = contextImpl.getDeclaredField("mPackageInfo");
 			f.setAccessible(true);
 
-			init = contextImpl.getDeclaredMethod("init", LoadedApk.class,
+			init = contextImpl.getDeclaredMethod("init", packageClass,
 					IBinder.class, ActivityThread.class);
 			init.setAccessible(true);
 
@@ -182,11 +188,15 @@ class PluginManagerImpl {
 					Context.class);
 			setOuterContext.setAccessible(true);
 
-			packageInfo = (LoadedApk) f.get(mContext);
+			packageInfo = (Object) f.get(mContext);
 
 			mOriginalClassLoader = (ClassLoader) mClassLoader.get(packageInfo);
 
-			Log.d(TAG, "find LoadedApk class,is above 2.2");
+			makeApplication = packageClass.getDeclaredMethod("makeApplication",
+					boolean.class, Instrumentation.class);
+			makeApplication.setAccessible(true);
+
+			Log.d(TAG, "find Object class,is above 2.2");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -222,6 +232,34 @@ class PluginManagerImpl {
 					} catch (NoSuchMethodException e1) {
 						e1.printStackTrace();
 					}
+				}
+
+				try {
+					startActivityNow = mActivityThread.getClass()
+							.getDeclaredMethod(
+									"startActivityNow",
+									new Class[] { Activity.class, String.class,
+											Intent.class, ActivityInfo.class,
+											IBinder.class, Bundle.class,
+											Object.class });
+				} catch (NoSuchMethodException e1) {
+					try {
+						Class localClass = Class
+								.forName("android.app.Activity$NonConfigurationInstances");
+						startActivityNow = mActivityThread.getClass()
+								.getDeclaredMethod(
+										"startActivityNow",
+										new Class[] { Activity.class,
+												String.class, Intent.class,
+												ActivityInfo.class,
+												IBinder.class, Bundle.class,
+												localClass });
+					} catch (NoSuchMethodException e2) {
+						e2.printStackTrace();
+					} catch (ClassNotFoundException e2) {
+						e2.printStackTrace();
+					}
+
 				}
 
 				mReceiver = new PluginBlankBroadcastReceiver();
@@ -570,13 +608,13 @@ class PluginManagerImpl {
 					info.packageName, 0).getAbsolutePath();
 			packageInfo.applicationInfo.flags &= ApplicationInfo.FLAG_HAS_CODE;
 
-			LoadedApk realPackageInfo = null;
+			Object realPackageInfo = null;
 			try {
-				realPackageInfo = (LoadedApk) getPackageInfo.invoke(
+				realPackageInfo = (Object) getPackageInfo.invoke(
 						mActivityThread, new Object[] {
 								packageInfo.applicationInfo, null });
 			} catch (Exception e) {
-				realPackageInfo = (LoadedApk) getPackageInfo.invoke(
+				realPackageInfo = (Object) getPackageInfo.invoke(
 						mActivityThread,
 						new Object[] { packageInfo.applicationInfo });
 			}
@@ -599,7 +637,8 @@ class PluginManagerImpl {
 			plugin.mClassLoader = classLoader;
 
 			// 调用Application
-			plugin.mApplication = realPackageInfo.makeApplication(false, null);
+			plugin.mApplication = (Application) makeApplication.invoke(
+					realPackageInfo, false, null);
 			if (plugin.mApplication instanceof PluginApplication) {
 				PluginApplication pa = (PluginApplication) plugin.mApplication;
 				pa.setPluginName(plugin.mPluginInfo.packageName);

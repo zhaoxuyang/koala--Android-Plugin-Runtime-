@@ -80,7 +80,7 @@ public class PluginBlankService extends Service {
 			try {
 				ActivityThread thread = manager.mActivityThread;
 				Instrumentation instrumentation = thread.getInstrumentation();
-				LoadedApk packageInfo = plugin.mRealPackageInfo;
+				Object packageInfo = plugin.mRealPackageInfo;
 				Constructor construct = manager.contextImpl
 						.getDeclaredConstructor();
 				construct.setAccessible(true);
@@ -90,7 +90,7 @@ public class PluginBlankService extends Service {
 						serviceName).newInstance();
 				manager.setOuterContext.invoke(context, service);
 				service.attach(this, thread, serviceName, new LocalBinder(),
-						packageInfo.makeApplication(false, instrumentation),
+						(Application)manager.makeApplication.invoke(packageInfo,false, instrumentation),
 						ActivityManagerNative.getDefault());
 				service.onCreate();
 				service.onStartCommand(intent, flags, startId);

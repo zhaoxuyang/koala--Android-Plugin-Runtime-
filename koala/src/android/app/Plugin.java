@@ -26,7 +26,7 @@ class Plugin {
 	/**
 	 * 加载到主程序后对应的packageinfo
 	 */
-	public LoadedApk mRealPackageInfo;
+	public Object mRealPackageInfo;
 	/**
 	 * 插件对应的application
 	 */
