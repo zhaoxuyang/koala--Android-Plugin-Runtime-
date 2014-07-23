@@ -81,11 +81,16 @@ public class PluginBlankService extends Service {
 				ActivityThread thread = manager.mActivityThread;
 				Instrumentation instrumentation = thread.getInstrumentation();
 				Object packageInfo = plugin.mRealPackageInfo;
-				Constructor construct = manager.contextImpl
-						.getDeclaredConstructor();
-				construct.setAccessible(true);
-				Context context = (Context) construct.newInstance();
-				manager.init.invoke(context, packageInfo, null, thread);
+				Context context = this;
+				if(manager.init!=null){
+					Constructor construct = manager.contextImpl
+							.getDeclaredConstructor();
+					construct.setAccessible(true);
+					context = (Context) construct.newInstance();
+					manager.init.invoke(context, packageInfo, null, thread);
+				}else{
+					context = (Context) manager.createAppContext.invoke(null, thread,packageInfo);
+				}
 				Service service = (Service) plugin.mClassLoader.loadClass(
 						serviceName).newInstance();
 				manager.setOuterContext.invoke(context, service);

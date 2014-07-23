@@ -26,6 +26,7 @@ import android.widget.Toast;
 import dalvik.system.DexClassLoader;
 
 import java.io.File;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -101,6 +102,8 @@ class PluginManagerImpl {
 	 * ContextImpl的初始化方法
 	 */
 	public Method init;
+
+	public Method createAppContext;
 
 	/**
 	 * ContextImpl的setOuterContext方法
@@ -187,108 +190,149 @@ class PluginManagerImpl {
 		// 得到主程序的Object
 		Object packageInfo = null;
 		Class packageClass = null;
+
 		try {
 			packageClass = Class.forName("android.app.LoadedApk");
+		} catch (ClassNotFoundException e3) {
+			e3.printStackTrace();
+		}
 
+		try {
 			mClassLoader = packageClass.getDeclaredField("mClassLoader");
 			mClassLoader.setAccessible(true);
+		} catch (NoSuchFieldException e3) {
+			e3.printStackTrace();
+		}
 
+		try {
 			contextImpl = Class.forName("android.app.ContextImpl");
+		} catch (ClassNotFoundException e3) {
+			e3.printStackTrace();
+		}
 
-			Field f = contextImpl.getDeclaredField("mPackageInfo");
+		Field f = null;
+		try {
+			f = contextImpl.getDeclaredField("mPackageInfo");
 			f.setAccessible(true);
+		} catch (NoSuchFieldException e3) {
+			e3.printStackTrace();
+		}
 
+		try {
 			init = contextImpl.getDeclaredMethod("init", packageClass,
 					IBinder.class, ActivityThread.class);
 			init.setAccessible(true);
+		} catch (NoSuchMethodException e3) {
+			try {
+				createAppContext = contextImpl.getDeclaredMethod(
+						"createAppContext", ActivityThread.class, packageClass);
+				createAppContext.setAccessible(true);
+			} catch (NoSuchMethodException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 
+		try {
 			setOuterContext = contextImpl.getDeclaredMethod("setOuterContext",
 					Context.class);
 			setOuterContext.setAccessible(true);
+		} catch (NoSuchMethodException e3) {
+			e3.printStackTrace();
+		}
 
+		try {
 			packageInfo = (Object) f.get(mContext);
+		} catch (IllegalAccessException e3) {
+			e3.printStackTrace();
+		} catch (IllegalArgumentException e3) {
+			e3.printStackTrace();
+		}
 
+		try {
 			mOriginalClassLoader = (ClassLoader) mClassLoader.get(packageInfo);
+		} catch (IllegalAccessException e3) {
+			e3.printStackTrace();
+		} catch (IllegalArgumentException e3) {
+			e3.printStackTrace();
+		}
 
+		try {
 			makeApplication = packageClass.getDeclaredMethod("makeApplication",
 					boolean.class, Instrumentation.class);
 			makeApplication.setAccessible(true);
-
-			Log.d(TAG, "find Object class,is above 2.2");
-		} catch (Exception e) {
-			e.printStackTrace();
+		} catch (NoSuchMethodException e3) {
+			e3.printStackTrace();
 		}
 
 		// 获得主程序的activitythread对象，并反射出getPackageInfo和startActivityNow两个方法。
 		// getPackageInfo用于将插件加载到主程序的mPackages里面
 		// startActivityNow 参照activitygroup的方法，用于启动activity。
 		if (packageClass != null) {
+
 			try {
-				Field f = packageClass.getDeclaredField("mActivityThread");
+				f = packageClass.getDeclaredField("mActivityThread");
 				f.setAccessible(true);
 				mActivityThread = (ActivityThread) f.get(packageInfo);
+			} catch (NoSuchFieldException e3) {
+				e3.printStackTrace();
+			} catch (IllegalAccessException e3) {
+				e3.printStackTrace();
+			} catch (IllegalArgumentException e3) {
+				e3.printStackTrace();
+			}
 
+			try {
+				Class clazz = Class
+						.forName("android.content.res.CompatibilityInfo");
+				getPackageInfo = mActivityThread.getClass().getDeclaredMethod(
+						"getPackageInfoNoCheck",
+						new Class[] { ApplicationInfo.class, clazz });
+				getPackageInfo.setAccessible(true);
+				Log.d(TAG,
+						"find method getPackageInfoNoCheck and os is high version");
+			} catch (Exception e) {
 				try {
-					Class clazz = Class
-							.forName("android.content.res.CompatibilityInfo");
-					getPackageInfo = mActivityThread
-							.getClass()
-							.getDeclaredMethod(
-									"getPackageInfoNoCheck",
-									new Class[] { ApplicationInfo.class, clazz });
+					getPackageInfo = mActivityThread.getClass()
+							.getDeclaredMethod("getPackageInfoNoCheck",
+									new Class[] { ApplicationInfo.class });
 					getPackageInfo.setAccessible(true);
 					Log.d(TAG,
-							"find method getPackageInfoNoCheck and os is high version");
-				} catch (Exception e) {
-					try {
-						getPackageInfo = mActivityThread.getClass()
-								.getDeclaredMethod("getPackageInfoNoCheck",
-										new Class[] { ApplicationInfo.class });
-						getPackageInfo.setAccessible(true);
-						Log.d(TAG,
-								"find method getPackageInfoNoCheck and os is low version");
-					} catch (NoSuchMethodException e1) {
-						e1.printStackTrace();
-					}
+							"find method getPackageInfoNoCheck and os is low version");
+				} catch (NoSuchMethodException e1) {
+					e1.printStackTrace();
 				}
+			}
 
+			try {
+				startActivityNow = mActivityThread.getClass()
+						.getDeclaredMethod(
+								"startActivityNow",
+								new Class[] { Activity.class, String.class,
+										Intent.class, ActivityInfo.class,
+										IBinder.class, Bundle.class,
+										Object.class });
+			} catch (NoSuchMethodException e1) {
 				try {
+					Class localClass = Class
+							.forName("android.app.Activity$NonConfigurationInstances");
 					startActivityNow = mActivityThread.getClass()
 							.getDeclaredMethod(
 									"startActivityNow",
 									new Class[] { Activity.class, String.class,
 											Intent.class, ActivityInfo.class,
 											IBinder.class, Bundle.class,
-											Object.class });
-				} catch (NoSuchMethodException e1) {
-					try {
-						Class localClass = Class
-								.forName("android.app.Activity$NonConfigurationInstances");
-						startActivityNow = mActivityThread.getClass()
-								.getDeclaredMethod(
-										"startActivityNow",
-										new Class[] { Activity.class,
-												String.class, Intent.class,
-												ActivityInfo.class,
-												IBinder.class, Bundle.class,
-												localClass });
-					} catch (NoSuchMethodException e2) {
-						e2.printStackTrace();
-					} catch (ClassNotFoundException e2) {
-						e2.printStackTrace();
-					}
-
+											localClass });
+				} catch (NoSuchMethodException e2) {
+					e2.printStackTrace();
+				} catch (ClassNotFoundException e2) {
+					e2.printStackTrace();
 				}
 
-				mReceiver = new PluginBlankBroadcastReceiver();
-
-			} catch (NoSuchFieldException e) {
-				e.printStackTrace();
-			} catch (IllegalAccessException e) {
-				e.printStackTrace();
-			} catch (IllegalArgumentException e) {
-				e.printStackTrace();
 			}
+
+			mReceiver = new PluginBlankBroadcastReceiver();
+
 		}
 	}
 
@@ -733,7 +777,7 @@ class PluginManagerImpl {
 				});
 				// 先清掉
 				mPluginInfos.clear();
-				
+
 				File[] files = mPluginRootDir.listFiles();
 				for (int i = 0; i < files.length; i++) {
 					File file = files[i];
