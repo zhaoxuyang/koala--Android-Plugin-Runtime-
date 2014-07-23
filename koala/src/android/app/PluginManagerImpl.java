@@ -19,6 +19,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Process;
+import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.widget.Toast;
@@ -76,8 +77,14 @@ class PluginManagerImpl {
 	 */
 	public Method getPackageInfo;
 
+	/**
+	 * 创建application的方法
+	 */
 	public Method makeApplication;
 
+	/**
+	 * 启动activity的方法
+	 */
 	public Method startActivityNow;
 
 	/**
@@ -131,6 +138,11 @@ class PluginManagerImpl {
 	private ServiceIntentResolver mServices = new ServiceIntentResolver();
 
 	/**
+	 * 插件存放的目录
+	 */
+	private File mPluginRootDir;
+
+	/**
 	 * 获取单例
 	 * 
 	 * @return 插件单例
@@ -150,9 +162,15 @@ class PluginManagerImpl {
 	 * @param dop
 	 *            插件dex的存放目录
 	 */
-	void init(ContextWrapper context, String dop) {
+	void init(ContextWrapper context, String dop, String pluginRootDir) {
 		mContext = context.getBaseContext();
 		mDexoutputPath = dop;
+		if (!TextUtils.isEmpty(pluginRootDir)) {
+			mPluginRootDir = new File(pluginRootDir);
+			if (!mPluginRootDir.exists()) {
+				mPluginRootDir.mkdirs();
+			}
+		}
 		mHandler = new Handler(Looper.getMainLooper());
 		Log.d(TAG, "start init environment");
 		initEnvironment();
@@ -336,12 +354,23 @@ class PluginManagerImpl {
 			Log.e(TAG, "no plugin or not install");
 			return;
 		}
-		String className = info.enterClass;
-		Intent newIntent = new Intent(mContext, PluginBlankActivity.class);
-		newIntent.putExtra(PluginBlankActivity.ACTIVITY_NAME, className);
-		newIntent.putExtra(PluginBlankActivity.PLUGIN_NAME, info.packageName);
-		newIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-		mContext.startActivity(newIntent);
+		Intent intent = new Intent(Intent.ACTION_MAIN);
+		List res = mActivitys.queryIntentForPackage(intent, null, 0,
+				info.mPackageObj.activities);
+		if (res != null && res.size() > 0) {
+			PackageParser.Activity activity = (android.content.pm.PackageParser.Activity) res
+					.get(0);
+			String className = activity.className;
+			Intent newIntent = new Intent(mContext, PluginBlankActivity.class);
+			newIntent.putExtra(PluginBlankActivity.ACTIVITY_NAME, className);
+			newIntent.putExtra(PluginBlankActivity.PLUGIN_NAME,
+					info.packageName);
+			newIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			mContext.startActivity(newIntent);
+		} else {
+			showToast(mContext, "this plugin no enter class", Toast.LENGTH_LONG);
+		}
+
 	}
 
 	/**
@@ -598,8 +627,6 @@ class PluginManagerImpl {
 			Plugin plugin = new Plugin();
 			plugin.mPluginInfo = info;
 
-			plugin.enterClass = info.enterClass;
-
 			PackageInfo packageInfo = info.mPackageInfo;
 			packageInfo.applicationInfo.uid = Process.myUid();
 			packageInfo.applicationInfo.sourceDir = info.apkPath;
@@ -691,7 +718,12 @@ class PluginManagerImpl {
 	 * @param listener
 	 *            listener
 	 */
-	void scanApks(final File dir, final ScanPluginListener listener) {
+	void scanApks(final ScanPluginListener listener) {
+
+		if (mPluginRootDir == null) {
+			return;
+		}
+
 		new Thread() {
 			public void run() {
 				mHandler.post(new Runnable() {
@@ -699,40 +731,41 @@ class PluginManagerImpl {
 						listener.onScanStart();
 					}
 				});
-				File[] files = dir.listFiles();
+				// 先清掉
+				mPluginInfos.clear();
+				
+				File[] files = mPluginRootDir.listFiles();
 				for (int i = 0; i < files.length; i++) {
 					File file = files[i];
 					String str = file.getName();
-					// 已经有了 跳过
-					if (mPluginInfos.containsKey(str)) {
-						continue;
-					}
+
 					PluginInfo pluginInfo = new PluginInfo();
 					pluginInfo.applicationName = str;
+
 					File[] files2 = file.listFiles();
 					for (int j = 0; j < files2.length; j++) {
-						file = files2[j];
-						str = file.getName();
+						File temp = files2[j];
+						str = temp.getName();
 						if (str.toLowerCase().endsWith(".apk")) {
 							pluginInfo.apkName = str;
-							pluginInfo.apkPath = file.getAbsolutePath();
+							pluginInfo.apkPath = temp.getAbsolutePath();
 						} else if (str.equals("libs")) {
-							File temp = new File(file, Build.CPU_ABI);
+							temp = new File(temp, Build.CPU_ABI);
 							if (temp.exists()) {
 								pluginInfo.nativeLibraryPaths.add(temp
 										.getAbsolutePath());
 							}
-						} else if (str.toLowerCase().endsWith(".enter")) {
-							pluginInfo.enterClass = str.substring(0,
-									str.length() - 6);
 						}
 					}
 
 					if (pluginInfo.checkApk()) {
+
 						getPackageInfo(pluginInfo);
+
 						mPluginInfos.put(pluginInfo.packageName, pluginInfo);
 					}
 				}
+
 				mHandler.post(new Runnable() {
 					public void run() {
 						listener.onScanEnd(new ArrayList<PluginInfo>(

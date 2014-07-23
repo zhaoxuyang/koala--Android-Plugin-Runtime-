@@ -26,10 +26,6 @@ public class PluginInfo {
 	 */
 	public String apkName;
 	/**
-	 * 入口类名
-	 */
-	public String enterClass;
-	/**
 	 * 插件的路径
 	 */
 	public String apkPath;
@@ -57,8 +53,7 @@ public class PluginInfo {
 	 * @return 是否完整
 	 */
 	public boolean checkApk() {
-		if ((!TextUtils.isEmpty(this.apkName))
-				&& (!TextUtils.isEmpty(this.enterClass))) {
+		if ((!TextUtils.isEmpty(this.apkName))) {
 			return true;
 		}
 		return false;

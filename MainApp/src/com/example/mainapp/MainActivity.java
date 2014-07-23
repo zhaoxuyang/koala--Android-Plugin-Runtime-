@@ -48,8 +48,10 @@ public class MainActivity extends Activity implements ScanPluginListener,
 		mListView.setOnItemClickListener(this);
 		mDialog = new ProgressDialog(this);
 		mDialog.setMessage("scanning");
+		File dir = Environment.getExternalStorageDirectory();
+		dir = new File(dir, "koala");
 		PluginManager.getInstance().init(this,
-				getDir("dexout", Context.MODE_PRIVATE).getAbsolutePath());
+				getDir("dexout", Context.MODE_PRIVATE).getAbsolutePath(),dir.getAbsolutePath());
 
 	}
 	
@@ -132,7 +134,7 @@ public class MainActivity extends Activity implements ScanPluginListener,
 				}
 				
 				protected void onPostExecute(File result) {
-					PluginManager.getInstance().scanApks(result, MainActivity.this);
+					PluginManager.getInstance().scanApks(MainActivity.this);
 				};
 
 			}.execute();

@@ -48,8 +48,8 @@ public final class PluginManager {
 	 * @param dop
 	 *            插件dex的存放位置
 	 */
-	public void init(ContextWrapper context, String dop) {
-		mImpl.init(context, dop);
+	public void init(ContextWrapper context, String dop, String pluginRootDir) {
+		mImpl.init(context, dop, pluginRootDir);
 	}
 
 	/**
@@ -72,8 +72,8 @@ public final class PluginManager {
 	 * @param listener
 	 *            扫描回掉
 	 */
-	public void scanApks(File dir, ScanPluginListener listener) {
-		mImpl.scanApks(dir, listener);
+	public void scanApks(ScanPluginListener listener) {
+		mImpl.scanApks(listener);
 	}
 
 	/**

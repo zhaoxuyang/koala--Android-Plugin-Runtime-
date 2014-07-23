@@ -16,10 +16,6 @@ class Plugin {
 	 */
 	public PluginInfo mPluginInfo;
 	/**
-	 * 插件的入口activity
-	 */
-	public String enterClass;
-	/**
 	 * 插件的classloader
 	 */
 	public ClassLoader mClassLoader;
