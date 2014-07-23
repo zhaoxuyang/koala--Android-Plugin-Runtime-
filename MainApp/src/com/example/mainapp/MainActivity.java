@@ -206,7 +206,7 @@ public class MainActivity extends Activity implements ScanPluginListener,
 					
 					@Override
 					public void onClick(View arg0) {
-						PluginManager.getInstance().uninstallPlugin(mContext,info.applicationName);
+						PluginManager.getInstance().uninstallPlugin(mContext,info.packageName);
 						notifyDataSetChanged();
 					}
 				});

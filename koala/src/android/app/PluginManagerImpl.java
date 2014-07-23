@@ -103,6 +103,9 @@ class PluginManagerImpl {
 	 */
 	public Method init;
 
+	/**
+	 * 4.4.3创建context的方法
+	 */
 	public Method createAppContext;
 
 	/**
