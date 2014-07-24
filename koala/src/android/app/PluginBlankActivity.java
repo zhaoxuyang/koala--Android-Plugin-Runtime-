@@ -7,6 +7,7 @@ import android.os.Binder;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.Menu;
+import android.view.Window;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -138,11 +139,10 @@ public class PluginBlankActivity extends Activity {
 			}
 		}
 
-		setRequestedOrientation(info.screenOrientation);
-		getWindow().setSoftInputMode(info.softInputMode);
+		Window win = activity.getWindow();
+		getWindow().setAttributes(win.getAttributes());
 		super.onCreate(savedInstanceState);
-		System.out.println("activity:" + activity);
-		setContentView(activity.getWindow().getDecorView());
+		setContentView(win.getDecorView());
 	}
 
 	@Override

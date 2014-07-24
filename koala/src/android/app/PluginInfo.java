@@ -12,7 +12,7 @@ import java.util.ArrayList;
  * 
  */
 public class PluginInfo {
-	
+
 	/**
 	 * 应用名
 	 */
@@ -42,7 +42,7 @@ public class PluginInfo {
 	 * 通过packagemanager获取的packageinfo
 	 */
 	public PackageInfo mPackageInfo;
-	
+
 	/**
 	 * 完整的packageinfo
 	 */
@@ -50,10 +50,11 @@ public class PluginInfo {
 
 	/**
 	 * 检查插件的完整性
+	 * 
 	 * @return 是否完整
 	 */
 	public boolean checkApk() {
-		if ((!TextUtils.isEmpty(this.apkName))) {
+		if (!TextUtils.isEmpty(apkName) && !TextUtils.isEmpty(apkPath)) {
 			return true;
 		}
 		return false;

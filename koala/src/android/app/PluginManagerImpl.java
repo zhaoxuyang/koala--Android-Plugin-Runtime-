@@ -13,6 +13,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageParser;
 import android.content.pm.PackageParser.ActivityIntentInfo;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -26,7 +27,6 @@ import android.widget.Toast;
 import dalvik.system.DexClassLoader;
 
 import java.io.File;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -213,14 +213,6 @@ class PluginManagerImpl {
 			e3.printStackTrace();
 		}
 
-		Field f = null;
-		try {
-			f = contextImpl.getDeclaredField("mPackageInfo");
-			f.setAccessible(true);
-		} catch (NoSuchFieldException e3) {
-			e3.printStackTrace();
-		}
-
 		try {
 			init = contextImpl.getDeclaredMethod("init", packageClass,
 					IBinder.class, ActivityThread.class);
@@ -241,6 +233,14 @@ class PluginManagerImpl {
 					Context.class);
 			setOuterContext.setAccessible(true);
 		} catch (NoSuchMethodException e3) {
+			e3.printStackTrace();
+		}
+
+		Field f = null;
+		try {
+			f = contextImpl.getDeclaredField("mPackageInfo");
+			f.setAccessible(true);
+		} catch (NoSuchFieldException e3) {
 			e3.printStackTrace();
 		}
 
@@ -771,13 +771,18 @@ class PluginManagerImpl {
 			return;
 		}
 
-		new Thread() {
-			public void run() {
-				mHandler.post(new Runnable() {
-					public void run() {
-						listener.onScanStart();
-					}
-				});
+		new AsyncTask<Void, Integer, Void>() {
+
+			@Override
+			protected void onPreExecute() {
+				super.onPreExecute();
+				if (listener != null) {
+					listener.onScanStart();
+				}
+			}
+
+			@Override
+			protected Void doInBackground(Void... arg0) {
 				// 先清掉
 				mPluginInfos.clear();
 
@@ -804,7 +809,7 @@ class PluginManagerImpl {
 							}
 						}
 					}
-
+					
 					if (pluginInfo.checkApk()) {
 
 						getPackageInfo(pluginInfo);
@@ -812,15 +817,19 @@ class PluginManagerImpl {
 						mPluginInfos.put(pluginInfo.packageName, pluginInfo);
 					}
 				}
-
-				mHandler.post(new Runnable() {
-					public void run() {
-						listener.onScanEnd(new ArrayList<PluginInfo>(
-								mPluginInfos.values()));
-					}
-				});
+				return null;
 			}
-		}.start();
+
+			@Override
+			protected void onPostExecute(Void result) {
+				super.onPostExecute(result);
+				if (listener != null) {
+					listener.onScanEnd(new ArrayList<PluginInfo>(mPluginInfos
+							.values()));
+				}
+			}
+		}.execute();
+
 	}
 
 	/**

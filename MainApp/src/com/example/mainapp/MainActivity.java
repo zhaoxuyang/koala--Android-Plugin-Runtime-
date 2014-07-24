@@ -107,12 +107,6 @@ public class MainActivity extends Activity implements ScanPluginListener,
 							is.close();
 							os.close();
 							
-							is = getAssets().open("demo/com.example.pluginapp.MainActivity.enter");
-							file = new File(demo,"com.example.pluginapp.MainActivity.enter");
-							os = new FileOutputStream(file);
-							copyFile(is, os);
-							is.close();
-							os.close();
 						}
 						Thread.sleep(1000);
 					} catch (IOException e) {
