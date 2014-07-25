@@ -785,6 +785,7 @@ class PluginManagerImpl {
 			protected Void doInBackground(Void... arg0) {
 				// 先清掉
 				mPluginInfos.clear();
+				mPlugins.clear();
 
 				File[] files = mPluginRootDir.listFiles();
 				for (int i = 0; i < files.length; i++) {
