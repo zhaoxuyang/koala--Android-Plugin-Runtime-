@@ -1,7 +1,9 @@
 package android.app;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.Intent;
 
 import java.io.File;
 
@@ -84,6 +86,33 @@ public final class PluginManager {
 	 */
 	public void startPlugin(PluginInfo info) {
 		mImpl.startPlugin(info);
+	}
+	
+	/**
+	 * 启动插件内的activity，外部调用一般用隐式启动的方式，
+	 * 因为外部获取不到activity的class
+	 * @param intent
+	 */
+	public void startPluginActivity(Intent intent) {
+		mImpl.startPluginActivity(intent);
+	}
+	
+	/**
+	 * 启动插件内的service，其他同上
+	 * @param intent
+	 * @return
+	 */
+	public ComponentName startPluginService(Intent intent) {
+		return mImpl.startPluginService(intent);
+	}
+	
+	/**
+	 * 停止插件内的service，其他同上
+	 * @param intent
+	 * @return
+	 */
+	public boolean stopPluginService(Intent intent) {
+		return mImpl.stopPluginService(intent);
 	}
 
 	/**
