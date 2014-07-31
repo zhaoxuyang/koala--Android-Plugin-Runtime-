@@ -18,6 +18,7 @@ Android插件平台 KOALA
 你可以通过运行MainApp，来启动插件demo。<br>
 
 注意事项：<br>
-1、插件中弹出Toast必须使用SDK中的showToast方法，否则不显示。<br>
+1、插件中弹出Toast必须使用插件SDK中的showToast方法，否则不显示。<br>
 2、插件中有本地库加载的话，由于虚拟机没有提供本地库卸载的功能，所以卸载的时候只能重启应用。<br>
-3、兼容Android2.3到4.4
+3、兼容Android2.3到4.4。<br>
+4、因为用了一些反射，不保证兼容所有ROM。
