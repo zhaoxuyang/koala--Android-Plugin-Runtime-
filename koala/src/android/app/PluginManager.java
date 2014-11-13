@@ -5,8 +5,6 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
 
-import java.io.File;
-
 /**
  * pluginmanager的wrapper，隐藏实现
  * 

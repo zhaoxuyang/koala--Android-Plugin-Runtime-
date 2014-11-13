@@ -8,6 +8,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 
 import android.app.Activity;
+import android.app.ApkFile;
 import android.app.InstallPluginListener;
 import android.app.PluginInfo;
 import android.app.PluginManager;
@@ -17,7 +18,6 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.View;
@@ -39,6 +39,8 @@ public class MainActivity extends Activity implements ScanPluginListener, OnItem
 
     private boolean mIsFirst = true;
 
+    private ArrayList<ApkFile> apks = new ArrayList<ApkFile>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,6 +54,17 @@ public class MainActivity extends Activity implements ScanPluginListener, OnItem
         PluginManager.getInstance().init(this, getDir("dexout", Context.MODE_PRIVATE).getAbsolutePath(),
                 dir.getAbsolutePath());
 
+        ApkFile apk = new ApkFile();
+        apk.apkName = "CppEmptyTest.apk";
+        apk.name = "cocos2dx";
+        apk.nativeLibs.add("libcpp_empty_test.so");
+        apks.add(apk);
+
+        apk = new ApkFile();
+        apk.apkName = "PluginApp.apk";
+        apk.name = "simpledemo";
+        apk.nativeLibs.add("libhello-jni.so");
+        apks.add(apk);
     }
 
     @Override
@@ -68,39 +81,42 @@ public class MainActivity extends Activity implements ScanPluginListener, OnItem
                     if (!dir.exists()) {
                         dir.mkdirs();
                     }
-                    try {
-                        File demo = new File(dir, "demo");
-                        if (!demo.exists()) {
-                            demo.mkdirs();
-                            InputStream is = getAssets().open("demo/CppEmptyTest.apk");
-                            File file = new File(demo, "CppEmptyTest.apk");
+
+                    for (int i = 0; i < apks.size(); i++) {
+                        try {
+                            ApkFile apk = apks.get(i);
+                            File demo = new File(dir, apk.name);
+                            if (!demo.exists()) {
+                                demo.mkdirs();
+                            }
+                            InputStream is = getAssets().open(apk.name + "/" + apk.apkName);
+                            File file = new File(demo, apk.apkName);
                             OutputStream os = new FileOutputStream(file);
                             copyFile(is, os);
                             is.close();
                             os.close();
 
-                            String abi = Build.CPU_ABI;
-                            is = getAssets().open("demo/libs/" + abi + "/libcpp_empty_test.so");
                             File libs = new File(demo, "libs");
                             if (!libs.exists()) {
                                 libs.mkdirs();
                             }
+                            String abi = Build.CPU_ABI;
                             File temp = new File(libs, abi);
                             if (!temp.exists()) {
                                 temp.mkdirs();
                             }
-                            file = new File(temp, "libcpp_empty_test.so");
-                            os = new FileOutputStream(file);
-                            copyFile(is, os);
-                            is.close();
-                            os.close();
 
+                            for (int j = 0; j < apk.nativeLibs.size(); j++) {
+                                is = getAssets().open(apk.name + "/libs/" + abi + "/" + apk.nativeLibs.get(j));
+                                file = new File(temp, apk.nativeLibs.get(j));
+                                os = new FileOutputStream(file);
+                                copyFile(is, os);
+                                is.close();
+                                os.close();
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
-                        Thread.sleep(1000);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
                     }
 
                     return dir;

@@ -34,13 +34,6 @@ public class PluginBlankActivity extends Activity {
      */
     private Activity activity;
 
-   
-    private static Method getFeatures;
-    /**
-     * 是否第一次
-     */
-    private boolean isFirst = true;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         // 根据intent信息，从插件中找到要载入的activity
