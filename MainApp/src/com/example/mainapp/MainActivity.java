@@ -72,15 +72,15 @@ public class MainActivity extends Activity implements ScanPluginListener, OnItem
                         File demo = new File(dir, "demo");
                         if (!demo.exists()) {
                             demo.mkdirs();
-                            InputStream is = getAssets().open("demo/PluginApp.apk");
-                            File file = new File(demo, "PluginApp.apk");
+                            InputStream is = getAssets().open("demo/CppEmptyTest.apk");
+                            File file = new File(demo, "CppEmptyTest.apk");
                             OutputStream os = new FileOutputStream(file);
                             copyFile(is, os);
                             is.close();
                             os.close();
 
                             String abi = Build.CPU_ABI;
-                            is = getAssets().open("demo/libs/" + abi + "/libhello-jni.so");
+                            is = getAssets().open("demo/libs/" + abi + "/libcpp_empty_test.so");
                             File libs = new File(demo, "libs");
                             if (!libs.exists()) {
                                 libs.mkdirs();
@@ -89,7 +89,7 @@ public class MainActivity extends Activity implements ScanPluginListener, OnItem
                             if (!temp.exists()) {
                                 temp.mkdirs();
                             }
-                            file = new File(temp, "libhello-jni.so");
+                            file = new File(temp, "libcpp_empty_test.so");
                             os = new FileOutputStream(file);
                             copyFile(is, os);
                             is.close();

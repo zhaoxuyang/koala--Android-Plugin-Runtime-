@@ -114,9 +114,10 @@ public class PluginBlankActivity extends Activity {
 		Plugin plugin = manager.getPlugin(pluginName);
 		ActivityInfo[] infos = plugin.mPluginInfo.mPackageInfo.activities;
 		ActivityInfo info = null;
-
+		int screenOriention = -1;
 		for (int i = 0; i < infos.length; i++) {
 			info = infos[i];
+			screenOriention = info.screenOrientation;
 			if (info.name.equals(activityName)) {
 				intent = new Intent();
 				intent.setComponent(new ComponentName(
@@ -138,9 +139,9 @@ public class PluginBlankActivity extends Activity {
 				break;
 			}
 		}
-
 		Window win = activity.getWindow();
 		getWindow().setAttributes(win.getAttributes());
+		setRequestedOrientation(screenOriention);
 		super.onCreate(savedInstanceState);
 		setContentView(win.getDecorView());
 	}
