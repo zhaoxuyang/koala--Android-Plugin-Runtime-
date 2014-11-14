@@ -3,6 +3,7 @@ package android.app;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.os.Binder;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -136,6 +137,12 @@ public class PluginBlankActivity extends Activity {
     @Override
     public void startActivityFromChild(Activity child, Intent intent, int requestCode) {
         PluginManagerImpl.getInstance().startPluginActivity(intent);
+    }
+    
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        activity.onConfigurationChanged(newConfig);
     }
 
     /**
