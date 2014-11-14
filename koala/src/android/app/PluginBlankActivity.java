@@ -11,7 +11,6 @@ import android.text.TextUtils;
 import android.view.Window;
 
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 
 /**
  * 插件activity的代理

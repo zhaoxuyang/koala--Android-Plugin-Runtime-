@@ -1,22 +1,17 @@
 package com.example.mainapp;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 
 import android.app.Activity;
 import android.app.ApkFile;
+import android.app.CopyPluginListener;
 import android.app.InstallPluginListener;
 import android.app.PluginInfo;
 import android.app.PluginManager;
 import android.app.ProgressDialog;
 import android.app.ScanPluginListener;
 import android.content.Context;
-import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -29,15 +24,13 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.AdapterView.OnItemClickListener;
 
-public class MainActivity extends Activity implements ScanPluginListener, OnItemClickListener, InstallPluginListener {
+public class MainActivity extends Activity implements ScanPluginListener, OnItemClickListener, InstallPluginListener, CopyPluginListener{
 
     private ProgressDialog mDialog;
 
     private ListView mListView;
 
     private PluginsAdapter mAdapter;
-
-    private boolean mIsFirst = true;
 
     private ArrayList<ApkFile> apks = new ArrayList<ApkFile>();
 
@@ -58,86 +51,16 @@ public class MainActivity extends Activity implements ScanPluginListener, OnItem
         apk.apkName = "CppEmptyTest.apk";
         apk.name = "cocos2dx";
         apk.nativeLibs.add("libcpp_empty_test.so");
+        apk.version = 1.0f;
         apks.add(apk);
 
         apk = new ApkFile();
         apk.apkName = "PluginApp.apk";
         apk.name = "simpledemo";
         apk.nativeLibs.add("libhello-jni.so");
+        apk.version = 1.0f;
         apks.add(apk);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (mIsFirst) {
-            mIsFirst = false;
-            new AsyncTask<Void, Void, File>() {
-
-                @Override
-                protected File doInBackground(Void... arg0) {
-                    File dir = getFilesDir();
-                    dir = new File(dir, "koala");
-                    if (!dir.exists()) {
-                        dir.mkdirs();
-                    }
-
-                    for (int i = 0; i < apks.size(); i++) {
-                        try {
-                            ApkFile apk = apks.get(i);
-                            File demo = new File(dir, apk.name);
-                            if (!demo.exists()) {
-                                demo.mkdirs();
-                            }
-                            InputStream is = getAssets().open(apk.name + "/" + apk.apkName);
-                            File file = new File(demo, apk.apkName);
-                            OutputStream os = new FileOutputStream(file);
-                            copyFile(is, os);
-                            is.close();
-                            os.close();
-
-                            File libs = new File(demo, "libs");
-                            if (!libs.exists()) {
-                                libs.mkdirs();
-                            }
-                            String abi = Build.CPU_ABI;
-                            File temp = new File(libs, abi);
-                            if (!temp.exists()) {
-                                temp.mkdirs();
-                            }
-
-                            for (int j = 0; j < apk.nativeLibs.size(); j++) {
-                                is = getAssets().open(apk.name + "/libs/" + abi + "/" + apk.nativeLibs.get(j));
-                                file = new File(temp, apk.nativeLibs.get(j));
-                                os = new FileOutputStream(file);
-                                copyFile(is, os);
-                                is.close();
-                                os.close();
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-
-                    return dir;
-                }
-
-                private void copyFile(InputStream src, OutputStream des) throws IOException {
-                    byte[] bytes = new byte[1024];
-                    int len = 0;
-                    while ((len = src.read(bytes)) > 0) {
-                        des.write(bytes, 0, len);
-                    }
-                    des.flush();
-                }
-
-                protected void onPostExecute(File result) {
-                    PluginManager.getInstance().scanApks(MainActivity.this);
-                };
-
-            }.execute();
-        }
-
+        PluginManager.getInstance().copyApksFromAsset(apks, getAssets(), this);
     }
 
     @Override
@@ -245,6 +168,22 @@ public class MainActivity extends Activity implements ScanPluginListener, OnItem
         menu.add("menu2");
         menu.add("menu3");
         return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public void onCopyStart() {
+        
+    }
+
+    @Override
+    public void onCopyEnd() {
+        PluginManager.getInstance().scanApks(this);
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        PluginManager.getInstance().destory();
     }
 
 }

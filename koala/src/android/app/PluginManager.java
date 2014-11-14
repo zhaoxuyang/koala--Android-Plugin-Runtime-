@@ -1,10 +1,13 @@
 package android.app;
 
+import java.util.ArrayList;
+
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
+import android.content.res.AssetManager;
 
 /**
  * pluginmanager的wrapper，隐藏实现
@@ -159,6 +162,15 @@ public final class PluginManager {
 	 */
 	public void destory() {
 		mImpl.destory();
+	}
+	
+	/**
+	 * @param apks
+	 * @param asset
+	 * @param listener
+	 */
+	public void copyApksFromAsset(final ArrayList<ApkFile> apks, final AssetManager asset, final CopyPluginListener listener){
+	    mImpl.copyApksFromAsset(apks, asset, listener);
 	}
 
 }

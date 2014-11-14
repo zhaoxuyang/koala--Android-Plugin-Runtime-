@@ -15,4 +15,6 @@ public class ApkFile {
     
     public ArrayList<String> nativeLibs = new ArrayList<String>();
     
+    public float version;
+    
 }
