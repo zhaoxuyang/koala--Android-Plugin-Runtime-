@@ -33,17 +33,20 @@ import android.util.Slog;
 import android.util.LogPrinter;
 import android.util.Printer;
 
-import android.util.Config;
 import android.content.Intent;
 import android.content.IntentFilter;
 
 /**
- * {@hide}
+ * 基于源码做的更改
+ * @author zhaoxuyang
+ * @since 2014-11-14
+ * @param <F>
+ * @param <R>
  */
 public class IntentResolver<F extends IntentFilter, R extends Object> {
     final private static String TAG = "IntentResolver";
     final private static boolean DEBUG = false;
-    final private static boolean localLOGV = DEBUG || Config.LOGV;
+    final private static boolean localLOGV = DEBUG;
 
     public void addFilter(F f) {
         if (localLOGV) {

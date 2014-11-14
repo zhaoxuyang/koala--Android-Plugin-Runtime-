@@ -1,5 +1,6 @@
 package android.app;
 
+import android.app.Application;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Intent;

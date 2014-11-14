@@ -10,6 +10,11 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageParser;
 
+/**
+ * 基于源码做的更改
+ * @author zhaoxuyang
+ * @since 2014-11-14
+ */
 final class ServiceIntentResolver extends
 		IntentResolver<PackageParser.ServiceIntentInfo, PackageParser.Service> {
 	

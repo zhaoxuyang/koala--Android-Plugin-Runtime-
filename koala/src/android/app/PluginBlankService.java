@@ -5,6 +5,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Iterator;
 
+import android.app.ActivityManagerNative;
+import android.app.ActivityThread;
+import android.app.Application;
+import android.app.Instrumentation;
+import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;

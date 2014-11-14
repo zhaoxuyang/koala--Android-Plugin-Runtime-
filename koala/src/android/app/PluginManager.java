@@ -1,5 +1,6 @@
 package android.app;
 
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.ContextWrapper;

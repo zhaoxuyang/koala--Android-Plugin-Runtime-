@@ -2,6 +2,7 @@ package android.app;
 
 import java.util.HashMap;
 
+import android.app.Application;
 import android.content.Context;
 
 /**
