@@ -4,6 +4,7 @@ import java.util.HashMap;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.IContentProvider;
 
 /**
  * 加载后的插件
@@ -32,4 +33,10 @@ class Plugin {
 	 * 插件中注册的receiver
 	 */
 	public HashMap<Context, LocalBroadcastManager> mLocalBroadCastManagers = new HashMap<Context, LocalBroadcastManager>();
+	
+    /**
+     * 插件中的contentprovider
+     */
+    public HashMap<String, IContentProvider> mProviderMap = new HashMap<String, IContentProvider>();
+
 }

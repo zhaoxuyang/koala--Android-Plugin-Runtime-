@@ -3,6 +3,7 @@ package android.app;
 import android.app.Application;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Handler;
@@ -19,6 +20,11 @@ public class PluginApplication extends Application {
 	 * 对应插件的名称
 	 */
 	private String pluginName;
+	
+	/**
+     * contentresolver
+     */
+    private PluginContentResolver mContentResolver;
 
 	@Override
 	public void startActivity(Intent intent) {
@@ -62,5 +68,13 @@ public class PluginApplication extends Application {
 	public void setPluginName(String pluginName) {
 		this.pluginName = pluginName;
 	}
+	
+	@Override
+    public ContentResolver getContentResolver() {
+        if(mContentResolver == null){
+            mContentResolver = new PluginContentResolver(this);
+        }
+        return mContentResolver;
+    }
 
 }

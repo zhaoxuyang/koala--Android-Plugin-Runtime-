@@ -308,4 +308,8 @@ public class LocalBroadcastManager {
 			}
 		}
 	}
+	
+	public int getSize(){
+	    return mReceivers.size();
+	}
 }

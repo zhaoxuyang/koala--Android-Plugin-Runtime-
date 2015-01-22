@@ -7,9 +7,11 @@ import android.app.Application;
 import android.app.Instrumentation;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.ContentProvider;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.DialogInterface;
+import android.content.IContentProvider;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
@@ -18,6 +20,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageParser;
 import android.content.pm.PackageParser.ActivityIntentInfo;
+import android.content.pm.PackageParser.Provider;
 import android.content.res.AssetManager;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -44,6 +47,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * 真正pluginmanager的实现
@@ -57,6 +61,8 @@ class PluginManagerImpl {
      * DEBUG
      */
     private static final String TAG = "PLUGIN_MANAGER";
+
+    private static final Pattern PATTERN_SEMICOLON = Pattern.compile(";");
 
     /**
      * 初始化主程序的context
@@ -142,7 +148,7 @@ class PluginManagerImpl {
      * 代理broadcastreceiver
      */
     private PluginBlankBroadcastReceiver mReceiver;
-    
+
     /**
      * 是否注册了receiver
      */
@@ -157,6 +163,11 @@ class PluginManagerImpl {
      * 启动service的时候用它查找
      */
     private ServiceIntentResolver mServices = new ServiceIntentResolver();
+
+    /**
+     * provider的时候用它查找
+     */
+    private HashMap<String, PackageParser.Provider> mProviderInfoMap = new HashMap<String, PackageParser.Provider>();
 
     /**
      * 插件存放的目录
@@ -539,7 +550,6 @@ class PluginManagerImpl {
             className = activity.className;
             info = mPluginInfos.get(activity.getComponentName().getPackageName());
         } else {
-
             String packageName = intent.getPackage();
             if (packageName != null) {
                 PluginInfo temp = mPluginInfos.get(packageName);
@@ -746,8 +756,45 @@ class PluginManagerImpl {
             LocalBroadcastManager manager = plugin.mLocalBroadCastManagers.get(context);
             if (manager != null) {
                 manager.unregisterReceiver(receiver);
+                if (manager.getSize() == 0) {
+                    plugin.mLocalBroadCastManagers.remove(context);
+                }
             }
         }
+    }
+
+    /**
+     * @param name
+     * @return
+     */
+    IContentProvider getContentProvider(String name) {
+        IContentProvider ip = getExistContentProvider(name);
+        if (ip != null) {
+            return ip;
+        }
+
+        if (mProviderInfoMap.containsKey(name)) {
+            PackageParser.Provider p = mProviderInfoMap.get(name);
+            String packageName = p.info.applicationInfo.packageName;
+            PluginInfo info = mPluginInfos.get(packageName);
+            if (info != null) {
+                installPlugin(info, null);
+                Plugin plugin = mPlugins.get(info.packageName);
+                return plugin.mProviderMap.get(name);
+            } 
+        }
+        return mContext.getContentResolver().acquireProvider(name);
+    }
+
+    IContentProvider getExistContentProvider(String name) {
+        Iterator<Plugin> iter = mPlugins.values().iterator();
+        while (iter.hasNext()) {
+            Plugin plugin = iter.next();
+            if (plugin.mProviderMap.containsKey(name)) {
+                return plugin.mProviderMap.get(name);
+            }
+        }
+        return null;
     }
 
     /**
@@ -822,6 +869,22 @@ class PluginManagerImpl {
                 }
             }
 
+            // 注册contentprovider
+            ArrayList<PackageParser.Provider> providers = info.mPackageObj.providers;
+            for (int i = 0; i < providers.size(); i++) {
+                android.content.pm.PackageParser.Provider provider = providers.get(i);
+                String providerName = provider.className;
+                ContentProvider localProvider = (ContentProvider) plugin.mClassLoader.loadClass(providerName)
+                        .newInstance();
+                localProvider.attachInfo(plugin.mApplication, provider.info);
+                IContentProvider realProvier = localProvider.getIContentProvider();
+                String names[] = PATTERN_SEMICOLON.split(provider.info.authority);
+                for (int j = 0; j < names.length; j++) {
+                    plugin.mProviderMap.put(names[i], realProvier);
+                }
+
+            }
+
             // 恭喜，插件安装了
             plugin.mPluginInfo.isInstalled = true;
 
@@ -853,7 +916,7 @@ class PluginManagerImpl {
         if (mPluginRootDir == null) {
             return;
         }
-        
+
         if (STATUS_SCAN == mStatus) {
             return;
         }
@@ -969,6 +1032,16 @@ class PluginManagerImpl {
         for (int i = 0; i < size; i++) {
             mServices.addService(services.get(i));
         }
+
+        ArrayList<PackageParser.Provider> providers = pack.providers;
+        size = providers.size();
+        for (int i = 0; i < size; i++) {
+            Provider p = providers.get(i);
+            String names[] = PATTERN_SEMICOLON.split(p.info.authority);
+            for (int j = 0; j < names.length; j++) {
+                mProviderInfoMap.put(names[i], p);
+            }
+        }
     }
 
     /**
@@ -998,6 +1071,7 @@ class PluginManagerImpl {
             plugin.mRealPackageInfo = null;
             plugin.mPluginInfo.isInstalled = false;
             plugin.mLocalBroadCastManagers.clear();
+            plugin.mProviderMap.clear();
             System.gc();
         }
     }
@@ -1025,7 +1099,7 @@ class PluginManagerImpl {
      * 销毁
      */
     void destory() {
-        if(mHasRegisterReceiver){
+        if (mHasRegisterReceiver) {
             mContext.unregisterReceiver(mReceiver);
         }
         mPlugins.clear();

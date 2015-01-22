@@ -3,6 +3,7 @@ package android.app;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
@@ -20,6 +21,11 @@ public class PluginActivity extends Activity {
 	 * 对应的插件名称
 	 */
 	private String pluginName;
+	
+	/**
+	 * contentresolver
+	 */
+	private PluginContentResolver mContentResolver;
 
 	@Override
 	protected void onCreate(Bundle arg0) {
@@ -56,5 +62,13 @@ public class PluginActivity extends Activity {
 	public void unregisterReceiver(BroadcastReceiver receiver) {
 		PluginManagerImpl.getInstance().unregisterReceiver(this, pluginName,
 				receiver);
+	}
+	
+	@Override
+	public ContentResolver getContentResolver() {
+	    if(mContentResolver == null){
+	        mContentResolver = new PluginContentResolver(this);
+	    }
+	    return mContentResolver;
 	}
 }

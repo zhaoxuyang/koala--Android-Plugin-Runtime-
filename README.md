@@ -4,7 +4,7 @@ koala
 Android插件平台 KOALA
 
 该平台目前：<br>
-1、支持Activity（显式，隐式启动），Service（显式，隐式启动），BroadcastReceiver（动态注册，静态注册）组件。<br>
+1、支持Activity（显式，隐式启动），Service（显式，隐式启动），BroadcastReceiver（动态注册，静态注册），ContentProvider。<br>
 2、支持插件间互调。<br>
 3、支持本地库。<br>
 4、支持插件包资源访问。<br>

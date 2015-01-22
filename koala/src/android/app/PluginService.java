@@ -3,6 +3,7 @@ package android.app;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Handler;
@@ -20,6 +21,11 @@ public class PluginService extends Service {
 	 * 插件的名称
 	 */
 	private String pluginName;
+	
+	/**
+     * contentresolver
+     */
+    private PluginContentResolver mContentResolver;
 
 	@Override
 	public IBinder onBind(Intent arg0) {
@@ -66,4 +72,12 @@ public class PluginService extends Service {
 		PluginManagerImpl.getInstance().unregisterReceiver(this, pluginName,
 				receiver);
 	}
+	
+	@Override
+    public ContentResolver getContentResolver() {
+        if(mContentResolver == null){
+            mContentResolver = new PluginContentResolver(this);
+        }
+        return mContentResolver;
+    }
 }
