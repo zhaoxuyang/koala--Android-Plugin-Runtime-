@@ -6,6 +6,7 @@ import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.Handler;
 
@@ -17,58 +18,67 @@ import android.os.Handler;
  */
 public class PluginActivity extends Activity {
 
-	/**
-	 * 对应的插件名称
-	 */
-	private String pluginName;
-	
-	/**
-	 * contentresolver
-	 */
-	private PluginContentResolver mContentResolver;
+    /**
+     * 对应的插件名称
+     */
+    private String pluginName;
 
-	@Override
-	protected void onCreate(Bundle arg0) {
-		pluginName = getIntent()
-				.getStringExtra(PluginBlankActivity.PLUGIN_NAME);
-		super.onCreate(arg0);
-	}
+    /**
+     * contentresolver
+     */
+    private PluginContentResolver mContentResolver;
 
-	@Override
-	public ComponentName startService(Intent service) {
-		return PluginManagerImpl.getInstance().startPluginService(service);
-	}
+    @Override
+    protected void onCreate(Bundle arg0) {
+        pluginName = getIntent().getStringExtra(PluginBlankActivity.PLUGIN_NAME);
+        super.onCreate(arg0);
+    }
 
-	@Override
-	public boolean stopService(Intent name) {
-		return PluginManagerImpl.getInstance().stopPluginService(name);
-	}
+    @Override
+    public ComponentName startService(Intent service) {
+        return PluginManagerImpl.getInstance().startPluginService(service);
+    }
 
-	@Override
-	public Intent registerReceiver(BroadcastReceiver receiver,
-			IntentFilter filter) {
-		return PluginManagerImpl.getInstance().registerReceiver(this,
-				pluginName, receiver, filter);
-	}
+    @Override
+    public boolean stopService(Intent name) {
+        return PluginManagerImpl.getInstance().stopPluginService(name);
+    }
 
-	@Override
-	public Intent registerReceiver(BroadcastReceiver receiver,
-			IntentFilter filter, String broadcastPermission, Handler scheduler) {
-		return PluginManagerImpl.getInstance().registerReceiver(this,
-				pluginName, receiver, filter, broadcastPermission, scheduler);
-	}
+    @Override
+    public boolean bindService(Intent service, ServiceConnection conn, int flags) {
+        return PluginManagerImpl.getInstance().bindPluginService(service, conn, flags);
+    }
 
-	@Override
-	public void unregisterReceiver(BroadcastReceiver receiver) {
-		PluginManagerImpl.getInstance().unregisterReceiver(this, pluginName,
-				receiver);
-	}
-	
-	@Override
-	public ContentResolver getContentResolver() {
-	    if(mContentResolver == null){
-	        mContentResolver = new PluginContentResolver(this);
-	    }
-	    return mContentResolver;
-	}
+    @Override
+    public void unbindService(ServiceConnection conn) {
+        PluginManagerImpl.getInstance().unbindPluginService(conn);
+    }
+
+    @Override
+    public Intent registerReceiver(BroadcastReceiver receiver, IntentFilter filter) {
+        return PluginManagerImpl.getInstance().registerReceiver(this, pluginName, receiver, filter);
+    }
+
+    @Override
+    public Intent registerReceiver(BroadcastReceiver receiver, IntentFilter filter, String broadcastPermission,
+            Handler scheduler) {
+        return PluginManagerImpl.getInstance().registerReceiver(this, pluginName, receiver, filter,
+                broadcastPermission, scheduler);
+    }
+
+    @Override
+    public void unregisterReceiver(BroadcastReceiver receiver) {
+        PluginManagerImpl.getInstance().unregisterReceiver(this, pluginName, receiver);
+    }
+
+    @Override
+    public ContentResolver getContentResolver() {
+        if (mContentResolver == null) {
+            mContentResolver = new PluginContentResolver(this);
+        }
+        return mContentResolver;
+    }
+    
+    
+
 }

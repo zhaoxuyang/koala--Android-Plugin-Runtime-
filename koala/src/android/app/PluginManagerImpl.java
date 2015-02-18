@@ -5,6 +5,7 @@ import android.app.ActivityThread;
 import android.app.AlertDialog;
 import android.app.Application;
 import android.app.Instrumentation;
+import android.app.PluginBlankService.PluginServiceConnection;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentProvider;
@@ -14,6 +15,7 @@ import android.content.DialogInterface;
 import android.content.IContentProvider;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
@@ -185,6 +187,8 @@ class PluginManagerImpl {
     private static final int STATUS_INSTALLING = 3;
 
     private int mStatus = STATUS_NORMAL;
+
+    private HashMap<ServiceConnection, PluginServiceConnection> mConnectionMap = new HashMap<ServiceConnection, PluginServiceConnection>();
 
     /**
      * 获取单例
@@ -593,7 +597,7 @@ class PluginManagerImpl {
      */
     ComponentName startPluginService(Intent intent) {
 
-        ComponentName cn = deliverPluginService(intent, PluginBlankService.START_TYPE);
+        ComponentName cn = deliverPluginService(intent, PluginBlankService.START_TYPE, null);
         if (cn != null) {
             return cn;
         }
@@ -610,12 +614,28 @@ class PluginManagerImpl {
      */
     boolean stopPluginService(Intent intent) {
 
-        ComponentName cn = deliverPluginService(intent, PluginBlankService.STOP_TYPE);
+        ComponentName cn = deliverPluginService(intent, PluginBlankService.STOP_TYPE, null);
         if (cn != null) {
             return true;
         }
         return mContext.stopService(intent);
 
+    }
+
+    boolean bindPluginService(Intent intent, ServiceConnection con, int flags) {
+        ComponentName cn = deliverPluginService(intent, PluginBlankService.BIND_TYPE, con);
+        if (cn != null) {
+            return true;
+        }
+        return mContext.bindService(intent, con, flags);
+    }
+
+    public void unbindPluginService(ServiceConnection conn) {
+        ComponentName cn = deliverPluginService(new Intent(), PluginBlankService.BIND_TYPE, conn);
+        if (cn != null) {
+            return;
+        }
+        mContext.unbindService(conn);
     }
 
     /**
@@ -627,7 +647,7 @@ class PluginManagerImpl {
      *            请求类型
      * @return ComponentName
      */
-    private ComponentName deliverPluginService(Intent intent, int type) {
+    private ComponentName deliverPluginService(Intent intent, int type, ServiceConnection con) {
         ComponentName cn = intent.getComponent();
         String className = null;
         PluginInfo info = null;
@@ -667,6 +687,28 @@ class PluginManagerImpl {
             newIntent.putExtra(PluginBlankService.SERVICE_NAME, className);
             newIntent.putExtra(PluginBlankService.PLUGIN_NAME, info.packageName);
             newIntent.putExtra(PluginBlankService.TYPE, type);
+            if (con != null) {
+                PluginServiceConnection pconn = mConnectionMap.get(con);
+                if (type == PluginBlankService.BIND_TYPE) {
+                    if (pconn == null) {
+                        pconn = new PluginServiceConnection();
+                        pconn.conn = con;
+                        mConnectionMap.put(con, pconn);
+                    }
+                    newIntent.putExtra(PluginBlankService.SERVICE_CONNECTION, pconn);
+                } else if (type == PluginBlankService.UNBIND_TYPE) {
+                    if (pconn != null) {
+                        mConnectionMap.remove(con);
+                        newIntent.putExtra(PluginBlankService.SERVICE_CONNECTION, pconn);
+                    } else {
+                        return null;
+                    }
+                }
+
+            } else if (type == PluginBlankService.BIND_TYPE || type == PluginBlankService.UNBIND_TYPE) {
+                return null;
+            }
+
             mContext.startService(newIntent);
             return rescn;
         }
@@ -781,7 +823,7 @@ class PluginManagerImpl {
                 installPlugin(info, null);
                 Plugin plugin = mPlugins.get(info.packageName);
                 return plugin.mProviderMap.get(name);
-            } 
+            }
         }
         return mContext.getContentResolver().acquireProvider(name);
     }
